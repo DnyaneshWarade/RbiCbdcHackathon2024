@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<toolkit:Popup xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+               xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+               x:Class="BharatEpaisaApp.Pages.Popups.LoadMoneyPopup"
+               xmlns:toolkit="clr-namespace:CommunityToolkit.Maui.Views;assembly=CommunityToolkit.Maui"
+               xmlns:viewmodel="clr-namespace:BharatEpaisaApp.ViewModels"
+               x:DataType="viewmodel:LoadMoneyViewModel"
+               xmlns:modal="clr-namespace:BharatEpaisaApp.Database.Models">
+    <Grid Padding="20" WidthRequest="350" BackgroundColor="White">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <Label Text="Load Money"
+               FontSize="20"
+               HorizontalOptions="Center" />
+        <Entry Placeholder="Choose notes"
+               FontSize="18"
+               Keyboard="Numeric"
+               Text="{Binding Amount}"
+               Margin="20,20,0,10"
+               HorizontalTextAlignment="Center"
+               IsEnabled="False"
+               Grid.Row="1"/>
+        <CollectionView x:Name="horizontalCollectionView" ItemsSource="{Binding Denominations}" Grid.Row="2">
+            <CollectionView.ItemsLayout>
+                <GridItemsLayout Orientation="Horizontal" HorizontalItemSpacing="10"/>
+            </CollectionView.ItemsLayout>
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="{x:Type modal:Denomination}">
+                    <StackLayout HorizontalOptions="Center">
+                            <Label Text="{Binding Source={x:Reference _stepper}, Path=Value, StringFormat='{0:F0}'}"
+                                   HorizontalOptions="Center" FontSize="24"/>
+                            <Stepper x:Name="_stepper"
+                                     Increment="1"
+                                     Value="{Binding Quantity}"
+                                     WidthRequest="70" 
+                                     ValueChanged="OnStepperValueChanged"/>
+                        <Image Source="{Binding ImageName}" HeightRequest="160" WidthRequest="80"/>
+                    </StackLayout>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+        <Label Text="{Binding Error}"
+               TextColor="Red" Grid.Row="3"/>
+        <Button Text="Proceed"
+                HorizontalOptions="Center"
+                FontSize="18"
+                Command="{Binding LoadMoneyCommand}" Grid.Row="4"/>
+    </Grid>
+</toolkit:Popup>

@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+               xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+               x:Class="BharatEpaisaApp.Pages.Popups.SendMoneyPopup"
+               xmlns:toolkit="clr-namespace:CommunityToolkit.Maui.Views;assembly=CommunityToolkit.Maui"
+               xmlns:viewmodel="clr-namespace:BharatEpaisaApp.ViewModels"
+               x:DataType="viewmodel:SendMoneyViewModel"
+             xmlns:converter="clr-namespace:BharatEpaisaApp.Helper.ValueConverter"
+               xmlns:modal="clr-namespace:BharatEpaisaApp.Database.Models"
+             Title="Send Money">
+    <ContentPage.Resources>
+        <ResourceDictionary>
+            <converter:StepperMaxValueToBoolConverter x:Key="StepperMaxValueToBoolConverter" />
+            <converter:NoteAvailableValueConverter x:Key="NoteAvailableValueConverter" />
+        </ResourceDictionary>
+    </ContentPage.Resources>
+    <Grid Padding="20" WidthRequest="350" BackgroundColor="White">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <Entry Placeholder="Enter receiver mobile no"
+               FontSize="18"
+               Keyboard="Numeric"
+               Text="{Binding ReceiverMobileNo}"
+               Margin="0,20,0,0"/>
+        <Entry Placeholder="Choose Notes"
+               FontSize="18"
+               Keyboard="Numeric"
+               Text="{Binding Amount}"
+               HorizontalTextAlignment="Center"
+               IsEnabled="False" Grid.Row="1"/>
+        <CollectionView x:Name="horizontalCollectionView" ItemsSource="{Binding Denominations}" Grid.Row="2">
+            <CollectionView.ItemsLayout>
+                <GridItemsLayout Orientation="Horizontal" HorizontalItemSpacing="10"/>
+            </CollectionView.ItemsLayout>
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="{x:Type modal:Denomination}">
+                    <StackLayout HorizontalOptions="Center">
+                        <Label Text="{Binding Source={x:Reference _stepper}, Path=Value, StringFormat='{0:F0}'}"
+                           HorizontalOptions="Center" FontSize="24"/>
+                        <Stepper x:Name="_stepper"
+                             Increment="1"
+                             Value="{Binding Quantity, Mode=TwoWay}"
+                             WidthRequest="70" 
+                             ValueChanged="OnStepperValueChanged"
+                                 Maximum="{Binding MaxLimit}"
+                                 IsEnabled="{Binding MaxLimit, Converter={StaticResource StepperMaxValueToBoolConverter}}"/>
+                        <Image Source="{Binding ImageName}" HeightRequest="160" WidthRequest="80"/>
+                        <Label Text="{Binding MaxLimit, StringFormat='Available: {0}', Converter={StaticResource NoteAvailableValueConverter}}"/>
+                    </StackLayout>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+        <Entry Placeholder="Enter pin"
+               FontSize="18"
+               Keyboard="Numeric"
+               Text="{Binding Pin}"
+               Margin="0,0,0,10"
+               IsPassword="True" Grid.Row="3"/>
+        <Label Text="{Binding Error}"
+               TextColor="Red" Grid.Row="4"/>
+        <Button Text="Proceed"
+                HorizontalOptions="Center"
+                FontSize="18"
+                Command="{Binding SendMoneyCommand}" Grid.Row="5"/>
+    </Grid>
+</ContentPage>

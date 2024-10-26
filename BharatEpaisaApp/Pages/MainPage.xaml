@@ -1,0 +1,84 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="BharatEpaisaApp.Pages.MainPage"
+             xmlns:viewmodel="clr-namespace:BharatEpaisaApp.ViewModels"
+             x:DataType="viewmodel:MainViewModel"
+             xmlns:local="clr-namespace:BharatEpaisaApp.Pages.Views"
+             xmlns:converter="clr-namespace:BharatEpaisaApp.Helper.ValueConverter"
+             xmlns:modal="clr-namespace:BharatEpaisaApp.Database.Models">
+    <ContentPage.Resources>
+        <ResourceDictionary>
+            <converter:EpochToDateConverter x:Key="EpochToDateConverter" />
+            <converter:StringToColorConverter x:Key="StringToColorConverter" />
+            <converter:StepperMaxValueToBoolConverter x:Key="StepperMaxValueToBoolConverter" />
+        </ResourceDictionary>
+    </ContentPage.Resources>
+    <Grid>
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="3*"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="6*"/>
+            </Grid.RowDefinitions>
+            <Image Source="banner.jpg"
+               HeightRequest="200"
+               HorizontalOptions="FillAndExpand"
+               VerticalOptions="FillAndExpand"/>
+            <VerticalStackLayout Padding="20">
+                <Label Text="Balance" TextColor="White" FontSize="18"/>
+                <Label Text="{Binding Balance}" TextColor="White" FontSize="24"/>
+                <Label Text="Uncleared Balance" TextColor="White" FontSize="14" Padding="0,20,0,0"/>
+                <Label Text="{Binding UnclearedBal}" TextColor="White" FontSize="24"/>
+            </VerticalStackLayout>
+            <HorizontalStackLayout Spacing="10" Padding="0,20"
+                                   HorizontalOptions="Center"
+                                   Grid.Row="1">
+                <Button Text="Load Money" Clicked="LoadMoney_Clicked"/>
+                <Button Text="Send Money" Command="{Binding SendMoneyCommand}"/>
+                <Button Text="Unload Money" Command="{Binding ClearDataCommand}"/>
+            </HorizontalStackLayout>
+            <Label Text="Transaction history" Padding="10,0"
+                   FontSize="18"
+                   HorizontalOptions="Start" Grid.Row="2"/>
+            <Grid Grid.Row="3" Padding="10,10,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Label Text="Date"/>
+                <Label Text="Desc" Grid.Column="1"/>
+                <Label Text="Amount" Grid.Column="2" HorizontalTextAlignment="Center"/>
+                <Label Text="Status" Grid.Column="3"/>
+            </Grid>
+            <CollectionView ItemsSource="{Binding Transactions}" Grid.Row="4">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="{x:Type modal:Transaction}">
+                        <Grid Padding="10,0,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Label Text="{Binding ReqId, Converter={StaticResource EpochToDateConverter}}"/>
+                            <Label Text="{Binding Desc}" Grid.Column="1"/>
+                            <Label Text="{Binding Amount}" Grid.Column="2" HorizontalTextAlignment="Center">
+                                <Label.TextColor>
+                                    <Binding Path="AmtColor" Converter="{StaticResource StringToColorConverter}" />
+                                </Label.TextColor>
+                            </Label>
+                            <Label Text="{Binding Status}" Grid.Column="3"/>
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </Grid>
+        <local:LoadingView x:Name="loadingView" IsVisible="{Binding IsLoading}" 
+               HorizontalOptions="FillAndExpand" VerticalOptions="FillAndExpand"/>
+    </Grid>
+</ContentPage>

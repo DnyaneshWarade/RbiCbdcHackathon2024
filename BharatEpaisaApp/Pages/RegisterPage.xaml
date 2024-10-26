@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="BharatEpaisaApp.Pages.RegisterPage"
+             Title="Registration"
+             xmlns:viewmodel="clr-namespace:BharatEpaisaApp.ViewModels"
+             x:DataType="viewmodel:RegisterViewModel"
+             xmlns:local="clr-namespace:BharatEpaisaApp.Pages.Views">
+    <Grid>
+        <VerticalStackLayout Spacing="25"
+                         Padding="30"
+                         HorizontalOptions="FillAndExpand" VerticalOptions="FillAndExpand">
+            <Image Source="erupee.png"
+               SemanticProperties.Description="Cute dot net bot waving hi to you!"
+               HorizontalOptions="Center" />
+        <Entry Placeholder="Enter your first name"
+               FontSize="18"
+               Keyboard="Text"
+               Text="{Binding FirstName}"/>
+        <Entry Placeholder="Enter your last name"
+               FontSize="18"
+               Keyboard="Text"
+               Text="{Binding LastName}"/>
+        <Entry Placeholder="Enter mobile no."
+               FontSize="18"
+               Keyboard="Numeric"
+               Text="{Binding MobileNo}"/>
+
+        <Entry Placeholder="Enter pin"
+               FontSize="18"
+               Keyboard="Numeric"
+               IsPassword="True"
+               Text="{Binding Pin}"/>
+        <Entry Placeholder="Confirm pin"
+               FontSize="18"
+               Keyboard="Numeric"
+               IsPassword="True"
+               Text="{Binding ConfirmPin}"/>
+        <Picker x:Name="dropdown" Title="Select your bank">
+            <Picker.ItemsSource>
+                <x:Array Type="{x:Type x:String}">
+                    <x:String>State Bank of India</x:String>
+                    <x:String>Central Bank of India</x:String>
+                    <x:String>Bank of India</x:String>
+                    <x:String>ICICI Bank</x:String>
+                    <x:String>HDFC Bank</x:String>
+                    <x:String>Axis Bank</x:String>
+                    <x:String>Punjab National Bank</x:String>
+                    <x:String>IDBI Bank</x:String>
+                </x:Array>
+            </Picker.ItemsSource>
+        </Picker>
+        <Button Text="Register"
+                HorizontalOptions="Center"
+                FontSize="18"
+                Command="{Binding RegisterCommand}"/>
+    </VerticalStackLayout>
+        <local:LoadingView x:Name="loadingView" IsVisible="{Binding IsLoading}" 
+                           HorizontalOptions="FillAndExpand" VerticalOptions="FillAndExpand"/>
+    </Grid>
+</ContentPage>
