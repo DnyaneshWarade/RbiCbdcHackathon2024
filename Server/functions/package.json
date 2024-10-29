@@ -17,7 +17,8 @@
     "firebase-admin": "^11.5.0",
     "firebase-functions": "^4.2.0",
     "helmet": "^8.0.0",
-    "joi": "^17.13.3"
+    "joi": "^17.13.3",
+    "snarkjs": "^0.7.5"
   },
   "devDependencies": {
     "firebase-functions-test": "^3.0.0"
