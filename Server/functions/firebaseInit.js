@@ -24,8 +24,17 @@ const getFirebaseAdminStorage = () => {
 	}
 };
 
+const getFirebaseAdminDB = () => {
+	if (firebaseApp) {
+		return firebaseApp.firestore();
+	} else {
+		undefined;
+	}
+};
+
 module.exports = {
 	getFirebaseAdminAuth,
 	initializeFirebaseApp,
 	getFirebaseAdminStorage,
+	getFirebaseAdminDB,
 };
