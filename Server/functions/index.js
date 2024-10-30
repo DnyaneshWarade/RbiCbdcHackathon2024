@@ -1,17 +1,18 @@
 const express = require("express");
 const functions = require("firebase-functions");
 const { initializeFirebaseApp } = require("./firebaseInit");
-const userRoutes = require("./routes/userRoutes");
+const transactionRoutes = require("./routes/transactionRoutes");
 const helmet = require("helmet");
-const app = express();
 
 initializeFirebaseApp();
+
+const app = express();
 
 // Middlewares
 app.use(express.json());
 app.use(helmet());
 
 // Routes
-app.use("/user", userRoutes);
+app.use("/transaction", transactionRoutes);
 
 exports.api = functions.region("asia-southeast1").https.onRequest(app);

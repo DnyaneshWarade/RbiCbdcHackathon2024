@@ -64,3 +64,6 @@ node_modules/
 
 # dotenv environment variables file
 .env
+
+# Service account file
+rbicbdchackathon2024-firebase-adminsdk-fir03-74a49bebb5.json
