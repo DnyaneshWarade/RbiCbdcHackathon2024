@@ -4,7 +4,6 @@ using BharatEpaisaApp.Pages.Popups;
 using BharatEpaisaApp.ViewModels;
 using CommunityToolkit.Maui;
 using BharatEpaisaApp.Database;
-using Microsoft.Maui.LifecycleEvents;
 
 namespace BharatEpaisaApp
 {

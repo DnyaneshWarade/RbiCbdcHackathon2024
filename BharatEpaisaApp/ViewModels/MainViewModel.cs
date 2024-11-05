@@ -1,13 +1,9 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using BharatEpaisaApp.Database;
 using BharatEpaisaApp.Database.Models;
-using BharatEpaisaApp.Helper;
 using BharatEpaisaApp.Pages.Popups;
 using System.Collections.ObjectModel;
-using System.Text.Json;
 
 namespace BharatEpaisaApp.ViewModels
 {
@@ -27,6 +23,9 @@ namespace BharatEpaisaApp.ViewModels
         [ObservableProperty]
         double unclearedBal = 0;
 
+        [ObservableProperty]
+        bool isAnonymousMode;
+        
         public MainViewModel(DatabaseContext databaseContext)
         {
             _databaseContext = databaseContext;
@@ -121,6 +120,11 @@ namespace BharatEpaisaApp.ViewModels
         public async Task SendMoney()
         {
             await Shell.Current.GoToAsync(nameof(SendMoneyPopup));
+        }
+
+        public void SetTheme(bool isDarkTheme)
+        {
+            Application.Current.UserAppTheme = isDarkTheme ? AppTheme.Dark : AppTheme.Light;
         }
     }
 }

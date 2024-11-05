@@ -10,18 +10,21 @@ const updateUserCloudMsgToken = async (req, res) => {
 	try {
 		// validate the body
 		if (
-			!((req.body.imei || req.body.publicKey) && req.body.cloudMsgToken)
+			!(
+				(req.body.deviceId || req.body.publicKey) &&
+				req.body.cloudMsgToken
+			)
 		) {
 			logger.error("Invalid request data");
 			response
 				.status(400)
 				.send(
-					"Invalid data, please specify imei or public key and token"
+					"Invalid data, please specify deviceId or public key and token"
 				);
 		}
 
-		let variable = req.body.imei ? "imei" : "publicKey";
-		let value = req.body.imei ?? req.body.publicKey;
+		let variable = req.body.deviceId ? "deviceId" : "publicKey";
+		let value = req.body.deviceId ?? req.body.publicKey;
 		// check if entry already exists in db
 		var database = getFirebaseAdminDB();
 		let querySnap = await database
@@ -70,18 +73,21 @@ const updateUser = async (req, res) => {
 
 		// store in db
 		var database = getFirebaseAdminDB();
-		const docRef = database.collection(usersCollection).doc(req.body.id);
-		const doc = await docRef.get();
+		var docRef;
 
-		if (!doc) {
+		if (!req.body.id) {
 			// add new entry in db
-			return res
-				.status(404)
-				.send(`document with id ${req.body.id} not found`);
+			docRef = await database.collection(usersCollection).add(req.body);
 		} else {
 			// update the token if it is different
+			docRef = database.collection(usersCollection).doc(req.body.id);
+			if (!docRef) {
+				return res
+					.status(404)
+					.send(`user with doc id ${docRef.id} not found`);
+			}
 			await docRef.update({
-				imei: req.body.imei,
+				deviceId: req.body.deviceId,
 				cloudMsgToken: req.body.cloudMsgToken,
 				publicKey: req.body.publicKey,
 			});

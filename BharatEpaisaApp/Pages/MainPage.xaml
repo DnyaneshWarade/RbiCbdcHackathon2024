@@ -32,6 +32,9 @@
                 <Label Text="{Binding Balance}" TextColor="White" FontSize="24"/>
                 <Label Text="Uncleared Balance" TextColor="White" FontSize="14" Padding="0,20,0,0"/>
                 <Label Text="{Binding UnclearedBal}" TextColor="White" FontSize="24"/>
+                <Label Text="Anonymous Mode" TextColor="White" FontSize="18" Padding="0,15,0,0"/>
+                <Switch VerticalOptions="CenterAndExpand" Margin="150,-35" IsToggled="{Binding IsAnonymousMode}"
+                        Toggled="Switch_Toggled"/>
             </VerticalStackLayout>
             <HorizontalStackLayout Spacing="10" Padding="0,20"
                                    HorizontalOptions="Center"

@@ -2,6 +2,9 @@
 using CommunityToolkit.Mvvm.Input;
 using BharatEpaisaApp.Helper;
 using BharatEpaisaApp.Pages;
+using System.Text;
+using BharatEpaisaApp.Database.Models;
+using Newtonsoft.Json;
 
 namespace BharatEpaisaApp.ViewModels
 {
@@ -34,37 +37,28 @@ namespace BharatEpaisaApp.ViewModels
             try {
                 if (validateInput())
                 {
-                    //var reqId = CommonFunctions.GetEpochTime();
-                    //var message = "{" + $"\"requestId\": \"{reqId}\", \"action\":\"register\",\"firstName\": \"{FirstName}\", \"lastName\": \"{LastName}\", \"mobileNo\": {MobileNo}, \"pin\": {Pin}, \"balance\": 0" + "}";
-                    //CommonFunctions.SendSmsToServer(message);
-                    //IsLoading = true;
-                    ////wait for 10 sec in order to receive sms
-                    //await Task.Delay(10000);
-                    ////read sms
-                    //do
-                    //{
-                    //    var searchStr = "We are happy to inform that your account & wallet has been created successfully.";
-                    //    var res = SmsResponseEvaluator.GetDygnifySms(searchStr);
-                    //    if (res.ValueKind != System.Text.Json.JsonValueKind.Undefined &&
-                    //        res.GetProperty("r").GetString() == reqId.ToString())
-                    //    {
-                    //        if (res.GetProperty("s").GetBoolean())
-                    //        {
-                    //            CommonFunctions.LoggedInMobileNo = MobileNo;
-                    //            CommonFunctions.LoggedInMobilePin = Pin;
-                    //            await SecureStorage.Default.SetAsync("mobileNo", MobileNo);
-                    //            await SecureStorage.Default.SetAsync("pin", Pin);
-                    //            await Shell.Current.GoToAsync($"//{nameof(MainPage)}");
-                    //        } else
-                    //        {
-                    //            Error = "User registration failed";
-                    //        }
+                    // Create the private account and store in keystore
+                    (string publicKey, string privateKey) = CryptoOperations.GenerateECCKeyPair();
+                    await SecureStorage.SetAsync("ECC_PublicKey", publicKey);
+                    await SecureStorage.SetAsync("ECC_PrivateKey", privateKey);
+                    string deviceModel = DeviceInfo.Model;
 
-                    //        break;
-                    //    }
-                    //    await Task.Delay(2000);
-                    //} while (true);
-                    await Shell.Current.GoToAsync($"//{nameof(MainPage)}");
+                    // Update the data along with token on server
+                    var token = Preferences.Get("DeviceToken", "");
+                    User user = new User(firstName, lastName, mobileNo, pin, deviceModel, token, publicKey, true);
+                    string payload = JsonConvert.SerializeObject(user);
+                    HttpClient client = new HttpClient();
+
+                    var content = new StringContent(payload, Encoding.UTF8, "application/json");
+                    var res = await client.PostAsync($"{Constants.ApiURL}/user/updateUser", content);
+                    if (res.IsSuccessStatusCode)
+                    {
+                        CommonFunctions.LoggedInMobileNo = MobileNo;
+                        CommonFunctions.LoggedInMobilePin = Pin;
+                        await SecureStorage.Default.SetAsync("mobileNo", MobileNo);
+                        await SecureStorage.Default.SetAsync("pin", Pin);
+                        await Shell.Current.GoToAsync($"//{nameof(MainPage)}");
+                    }
                     Error = "Didn't receive registration success within time, please try after sometime";
                     IsLoading = false;
                 }
