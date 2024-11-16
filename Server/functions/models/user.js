@@ -7,9 +7,7 @@ const User = Joi.object({
 	mobileNo: Joi.string().required(),
 	pin: Joi.string().required(),
 	deviceId: Joi.string().required(),
-	cloudMsgToken: Joi.string().required(),
-	publicKey: Joi.string().required(),
-	isActive: Joi.bool().required(),
+	isAnonymousWCreated: Joi.bool().required(),
 	// aadharHash: Joi.string().required(),
 });
 

@@ -34,15 +34,15 @@ namespace BharatEpaisaApp
             {
                 foreach (var key in intent.Extras.KeySet())
                 {
-                    if (key == "NavigationID")
+                    if (key == "Transaction")
                     {
+                        if (Preferences.ContainsKey("Transaction"))
+                            Preferences.Remove("Transaction");
+
                         string idValue = intent.Extras.GetString(key);
-                        if (Preferences.ContainsKey("NavigationID"))
-                            Preferences.Remove("NavigationID");
+                        Preferences.Set("Transaction", idValue);
 
-                        Preferences.Set("NavigationID", idValue);
-
-                        WeakReferenceMessenger.Default.Send(new PushNotificationReceived("test"));
+                        //WeakReferenceMessenger.Default.Send(new PushNotificationReceived("test"));
                     }
                 }
             }

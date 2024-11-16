@@ -30,7 +30,7 @@ namespace BharatEpaisaApp.ViewModels
         {
             _databaseContext = databaseContext;
             LoadTransactionsAsync();
-            //CheckUserReceivedTrx();
+            CheckUserReceivedTrx();
             LoadBalance();
         }
 
@@ -126,5 +126,20 @@ namespace BharatEpaisaApp.ViewModels
         {
             Application.Current.UserAppTheme = isDarkTheme ? AppTheme.Dark : AppTheme.Light;
         }
+
+        private async Task   CheckUserReceivedTrx()
+        {
+            if (Preferences.ContainsKey("Transaction"))
+            {
+                await App.Current.MainPage.DisplayAlert("Transaction Received", "test", "Ok");
+                Preferences.Remove("Transaction");
+            }
+            else if(Preferences.ContainsKey("Status"))
+            {
+                await App.Current.MainPage.DisplayAlert("Status Received", "test", "Ok");
+                Preferences.Remove("Status");
+            }
+        }
+
     }
 }

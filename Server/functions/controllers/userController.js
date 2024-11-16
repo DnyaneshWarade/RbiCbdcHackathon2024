@@ -3,46 +3,35 @@ const User = require("../models/user");
 const { getFirebaseAdminAuth, getFirebaseAdminDB } = require("../firebaseInit");
 
 const usersCollection = "Users";
+const awCollection = "AnonymousWallets";
 
 // update user cloud message token
 const updateUserCloudMsgToken = async (req, res) => {
 	logger.info("userController updateUserCloudMsgToken execution started");
 	try {
 		// validate the body
-		if (
-			!(
-				(req.body.deviceId || req.body.publicKey) &&
-				req.body.cloudMsgToken
-			)
-		) {
+		if (!(req.body.publicKey && req.body.cloudMsgToken)) {
 			logger.error("Invalid request data");
 			response
 				.status(400)
-				.send(
-					"Invalid data, please specify deviceId or public key and token"
-				);
+				.send("Invalid data, please specify public key and token");
 		}
 
-		let variable = req.body.deviceId ? "deviceId" : "publicKey";
-		let value = req.body.deviceId ?? req.body.publicKey;
 		// check if entry already exists in db
 		var database = getFirebaseAdminDB();
 		let querySnap = await database
-			.collection(usersCollection)
-			.where(variable, "==", value)
+			.collection(awCollection)
+			.where("publicKey", "==", req.body.publicKey)
 			.get();
 
 		let docRef;
 		if (!querySnap.docs[0]) {
 			// add new entry in db
-			docRef = await database.collection(usersCollection).add({
-				variable: value,
-				cloudMsgToken: req.body.cloudMsgToken,
-			});
+			docRef = await database.collection(awCollection).add(req.body);
 		} else {
 			// update the token if it is different
 			docRef = await database
-				.collection(usersCollection)
+				.collection(awCollection)
 				.doc(querySnap.docs[0].id)
 				.set({ cloudMsgToken: req.body.cloudMsgToken });
 		}
@@ -50,6 +39,36 @@ const updateUserCloudMsgToken = async (req, res) => {
 		return res
 			.status(200)
 			.send(`token has been updated successfully in doc id ${docRef.id}`);
+	} catch (error) {
+		logger.error(error);
+	}
+	res.status(400).send("Invalid request");
+};
+
+const getUserCloudMsgToken = async (req, res) => {
+	logger.info("userController getUserCloudMsgToken execution started");
+	try {
+		// validate the body
+		if (!req.query.publicKey) {
+			logger.error("Invalid request data");
+			response
+				.status(400)
+				.send("Invalid data, please specify public key");
+		}
+
+		// check if entry already exists in db
+		var database = getFirebaseAdminDB();
+		let querySnap = await database
+			.collection(awCollection)
+			.where("publicKey", "==", req.query.publicKey)
+			.get();
+
+		if (!querySnap.docs[0]) {
+			return res.status(404).send("key not found");
+		} else {
+			//let docs = querySnap.docs.map((doc) => doc.data());
+			return res.status(200).json(querySnap.docs[0].data());
+		}
 	} catch (error) {
 		logger.error(error);
 	}
@@ -86,11 +105,7 @@ const updateUser = async (req, res) => {
 					.status(404)
 					.send(`user with doc id ${docRef.id} not found`);
 			}
-			await docRef.update({
-				deviceId: req.body.deviceId,
-				cloudMsgToken: req.body.cloudMsgToken,
-				publicKey: req.body.publicKey,
-			});
+			await docRef.update(req.body);
 		}
 		logger.info("userController updateUser execution end");
 		return res
@@ -106,9 +121,5 @@ const updateUser = async (req, res) => {
 module.exports = {
 	updateUserCloudMsgToken,
 	updateUser,
-	// getAllUsers,
-	// getUserAccountStatus,
-	// enableDisableUserAccount,
-	// deleteUserAccount,
-	// forgotUserPassword,
+	getUserCloudMsgToken,
 };

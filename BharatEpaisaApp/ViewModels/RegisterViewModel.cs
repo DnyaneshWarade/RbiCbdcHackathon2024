@@ -43,23 +43,31 @@ namespace BharatEpaisaApp.ViewModels
                     await SecureStorage.SetAsync("ECC_PrivateKey", privateKey);
                     string deviceModel = DeviceInfo.Model;
 
-                    // Update the data along with token on server
+                    // First store the anonymous wallet in details in server
                     var token = Preferences.Get("DeviceToken", "");
-                    User user = new User(firstName, lastName, mobileNo, pin, deviceModel, token, publicKey, true);
-                    string payload = JsonConvert.SerializeObject(user);
+                    AnonymousWallet aWallet = new AnonymousWallet("", token, publicKey, true);
+                    string awPayload = JsonConvert.SerializeObject(aWallet);
                     HttpClient client = new HttpClient();
-
-                    var content = new StringContent(payload, Encoding.UTF8, "application/json");
-                    var res = await client.PostAsync($"{Constants.ApiURL}/user/updateUser", content);
-                    if (res.IsSuccessStatusCode)
+                    var awContent = new StringContent(awPayload, Encoding.UTF8, "application/json");
+                    var awRes = await client.PostAsync($"{Constants.ApiURL}/user/updateUserCloudMsgToken", awContent);
+                    if (awRes.IsSuccessStatusCode)
                     {
-                        CommonFunctions.LoggedInMobileNo = MobileNo;
-                        CommonFunctions.LoggedInMobilePin = Pin;
-                        await SecureStorage.Default.SetAsync("mobileNo", MobileNo);
-                        await SecureStorage.Default.SetAsync("pin", Pin);
-                        await Shell.Current.GoToAsync($"//{nameof(MainPage)}");
+                        User user = new User("", firstName, lastName, mobileNo, pin, deviceModel, true);
+                        string payload = JsonConvert.SerializeObject(user);
+                        var content = new StringContent(payload, Encoding.UTF8, "application/json");
+                        var res = await client.PostAsync($"{Constants.ApiURL}/user/updateUser", content);
+                        if (res.IsSuccessStatusCode)
+                        {
+                            CommonFunctions.LoggedInMobileNo = MobileNo;
+                            CommonFunctions.LoggedInMobilePin = Pin;
+                            await SecureStorage.Default.SetAsync("mobileNo", MobileNo);
+                            await SecureStorage.Default.SetAsync("pin", Pin);
+                            await Shell.Current.GoToAsync($"//{nameof(MainPage)}");
+                        }
                     }
-                    Error = "Didn't receive registration success within time, please try after sometime";
+                    else
+                        Error = "Didn't receive registration success within time, please try after sometime";
+                    
                     IsLoading = false;
                 }
                 else
