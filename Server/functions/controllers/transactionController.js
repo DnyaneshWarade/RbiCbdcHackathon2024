@@ -5,19 +5,39 @@ const path = require("path");
 const { getFirebaseAdminStorage } = require("../firebaseInit");
 const fs = require("fs").promises;
 
-const getVerificationKey = async () => {
+const getVerificationKeys = async () => {
 	try {
 		const bucket = getFirebaseAdminStorage().bucket();
-		const tempFilePath = path.join(os.tmpdir(), "verification_key.json"); // Universal temp directory
+		const tempFilePathSender = path.join(
+			os.tmpdir(),
+			"sender_verification_key.json"
+		); // Universal temp directory
+		const tempFilePathReceiver = path.join(
+			os.tmpdir(),
+			"receiver_verification_key.json"
+		);
 
-		// Download the verification key from Firebase Storage
+		// Download the verification keys from Firebase Storage
 		await bucket
-			.file("verification/verification_key.json")
-			.download({ destination: tempFilePath });
+			.file("verification/sender_verification_key.json")
+			.download({ destination: tempFilePathSender });
+		await bucket
+			.file("verification/receiver_verification_key.json")
+			.download({ destination: tempFilePathReceiver });
 
 		// Read and parse the verification key JSON
-		const verificationKeyData = await fs.readFile(tempFilePath, "utf-8");
-		return JSON.parse(verificationKeyData);
+		const verificationKeyDataSender = await fs.readFile(
+			tempFilePathSender,
+			"utf-8"
+		);
+		const verificationKeyDataReceiver = await fs.readFile(
+			tempFilePathReceiver,
+			"utf-8"
+		);
+		return {
+			senderVerificationKey: JSON.parse(verificationKeyDataSender),
+			receiverVerificationKey: JSON.parse(verificationKeyDataReceiver),
+		};
 	} catch (error) {
 		logger.error("Error fetching verification key:", error);
 		throw new Error("Failed to retrieve verification key");
@@ -34,25 +54,41 @@ const verifyTransaction = async (req, res) => {
 		}
 
 		// Validate input
-		const { publicInputs, proof } = req.body;
-		if (!publicInputs || !proof) {
+		const {
+			senderPublicInputs,
+			senderProof,
+			receiverPublicInputs,
+			receiverProof,
+		} = req.body;
+		if (
+			!senderPublicInputs ||
+			!senderProof ||
+			!receiverPublicInputs ||
+			!receiverProof
+		) {
 			return res
 				.status(400)
 				.json({ error: "publicInputs and proof are required" });
 		}
 
-		// Fetch the verification key from Firebase Storage
-		const verificationKey = await getVerificationKey();
+		// Fetch the verification keys from Firebase Storage
+		const { senderVerificationKey, receiverVerificationKey } =
+			await getVerificationKeys();
 
 		// Verify the zk-SNARK proof using snarkjs
-		const result = await snarkjs.groth16.verify(
-			verificationKey,
-			publicInputs,
-			proof
+		const senderResult = await snarkjs.groth16.verify(
+			senderVerificationKey,
+			senderPublicInputs,
+			senderProof
+		);
+		const receiverResult = await snarkjs.groth16.verify(
+			receiverVerificationKey,
+			receiverPublicInputs,
+			receiverProof
 		);
 		logger.info("transactionController verifyTransaction execution end");
 
-		if (result) {
+		if (senderResult && receiverResult) {
 			return res
 				.status(200)
 				.json({ message: "Proof is valid", valid: true });
