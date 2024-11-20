@@ -148,7 +148,73 @@ const verifyTransaction = async (req, res) => {
 	}
 };
 
+const senderToReceiverTx = async (req, res) => {
+	logger.info("transactionController senderToReceiverTx execution started");
+	try {
+		// validate the body
+		if (!req.body) {
+			logger.error("Invalid request data");
+			return res.status(400).send("Invalid data");
+		}
+
+		// Validate input
+		const { senderPublicInputs, senderProof, txValue, publicKey } =
+			req.body;
+		if (!senderPublicInputs || !senderProof || !txValue || !publicKey) {
+			logger.error("Missing required fields");
+			return res.status(400).json({ error: "Missing required fields" });
+		}
+
+		const database = getFirebaseAdminDB();
+		let querySnap = await database
+			.collection(awCollection)
+			.where("publicKey", "==", publicKey)
+			.get();
+
+		if (!querySnap.docs[0]) {
+			return res.status(404).send("key not found");
+		}
+		const doc = querySnap.docs[0].data();
+		const walletData = doc;
+		let cloudMsgToken;
+		// Implement push notification logic to sender
+		if (walletData.isActive) {
+			cloudMsgToken = walletData.cloudMsgToken;
+		}
+		if (!cloudMsgToken) {
+			logger.error("No active cloudMsgToken found for publicKey");
+			return res
+				.status(404)
+				.json({ error: "User not active for notifications" });
+		}
+
+		// Prepare notification payload
+		const message = {
+			token: cloudMsgToken,
+			notification: {
+				title: "Transaction Alert",
+				body: `You have received ${txValue} coins!`,
+			},
+			data: {
+				senderProof: JSON.stringify(senderProof),
+				senderPublicInputs: JSON.stringify(senderPublicInputs),
+				txValue: txValue.toString(),
+			},
+		};
+
+		// Send notification
+		const response = await admin.messaging().send(message);
+		logger.info("Notification sent successfully:", response);
+		logger.info("transactionController senderToReceiverTx execution end");
+		// Return success or failed status
+	} catch (error) {
+		logger.error("Verification failed:", error);
+		return res.status(500).json({ error: "Internal server error" });
+	}
+};
+
 module.exports = {
 	loadMoney,
 	verifyTransaction,
+	senderToReceiverTx,
 };
