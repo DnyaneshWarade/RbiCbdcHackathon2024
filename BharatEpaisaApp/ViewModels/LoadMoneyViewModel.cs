@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using BharatEpaisaApp.Helper;
 using BharatEpaisaApp.Database.Models;
 using Newtonsoft.Json;
+using System.Text;
 
 namespace BharatEpaisaApp.ViewModels
 {
@@ -34,48 +35,57 @@ namespace BharatEpaisaApp.ViewModels
             try
             {
                 Error = string.Empty;
-                if (Amount < 0)
+                if (Amount <= 0)
                 {
                     Error = "Enter valid amount";
                     return;
                 }
                 var reqId = CommonFunctions.GetEpochTime();
-                var message = "{" + $"\"requestId\": \"{reqId}\",\"action\":\"loadMoney\",\"amount\": {Amount}, \"to\": {CommonFunctions.LoggedInMobileNo}, \"pin\": {CommonFunctions.LoggedInMobilePin}, \"status\": \"In Process\", \"desc\": \"Load money\"" + "}";
-                //CommonFunctions.SendSmsToServer(message);
-                // get the previous load money and add current one in it
-                var moneyAvailableJson = await SecureStorage.Default.GetAsync("denominations");
-                Collection<Denomination> moneyAvailableCollection;
-                if (!string.IsNullOrWhiteSpace(moneyAvailableJson))
+                //load money api call
+                using (var client = new HttpClient())
                 {
-                    moneyAvailableCollection = JsonConvert.DeserializeObject<Collection<Denomination>>(moneyAvailableJson);
-                    foreach (var item in moneyAvailableCollection)
+                    var token = Preferences.Get("DeviceToken", "");
+                    var data = "{" + $"\"requestId\": \"{reqId}\",\"token\": \"{token}\"" + "}";
+                    var trxContent = new StringContent(data, Encoding.UTF8, "application/json");
+                    var awRes = await client.PostAsync($"{Constants.ApiURL}/transaction/loadMoney", trxContent);
+                    if (awRes.IsSuccessStatusCode)
                     {
-                        var note = Denominations.FirstOrDefault(d => d.Name == item.Name);
-                        if (note != null)
+                        // get the previous load money and add current one in it
+                        var moneyAvailableJson = await SecureStorage.Default.GetAsync("denominations");
+                        Collection<Denomination> moneyAvailableCollection;
+                        if (!string.IsNullOrWhiteSpace(moneyAvailableJson) && moneyAvailableJson != "null")
                         {
-                            item.MaxLimit += note.Quantity;
+                            moneyAvailableCollection = JsonConvert.DeserializeObject<Collection<Denomination>>(moneyAvailableJson);
+                            foreach (var item in moneyAvailableCollection)
+                            {
+                                var note = Denominations.FirstOrDefault(d => d.Name == item.Name);
+                                if (note != null)
+                                {
+                                    item.MaxLimit += note.Quantity;
+                                }
+                            }
                         }
-                    }
-                }
-                else
-                {
-                    moneyAvailableCollection = new Collection<Denomination>();
-                    foreach (var item in Denominations)
-                    {
-                        item.MaxLimit = item.Quantity;
-                        item.Quantity = 0;
-                        moneyAvailableCollection.Add(item);
-                    }
-                }
-                await SecureStorage.Default.SetAsync("denominations", JsonConvert.SerializeObject(moneyAvailableCollection));
-                Transaction newItem = new Transaction { ReqId = reqId.ToString(), Amount = Amount, To = CommonFunctions.LoggedInMobileNo, Status = "In Process", Desc = "Load money" };
+                        else
+                        {
+                            moneyAvailableCollection = new Collection<Denomination>();
+                            foreach (var item in Denominations)
+                            {
+                                item.MaxLimit = item.Quantity;
+                                item.Quantity = 0;
+                                moneyAvailableCollection.Add(item);
+                            }
+                        }
+                        await SecureStorage.Default.SetAsync("denominations", JsonConvert.SerializeObject(moneyAvailableCollection));
+                        Transaction newItem = new Transaction { ReqId = reqId.ToString(), Amount = Amount, To = CommonFunctions.LoggedInMobileNo, Status = "Complete", Desc = "Load money" };
 
-                var navigationParameter = new Dictionary<string, object>
+                        var navigationParameter = new Dictionary<string, object>
                                             {
                                                 { "transaction", newItem }
                                             };
-                await Shell.Current.GoToAsync("..", true, navigationParameter);
-                ClosePopup?.Invoke(this, EventArgs.Empty);
+                        await Shell.Current.GoToAsync("..", true, navigationParameter);
+                        ClosePopup?.Invoke(this, EventArgs.Empty);
+                    }
+                }
             }
             catch (Exception ex)
             {

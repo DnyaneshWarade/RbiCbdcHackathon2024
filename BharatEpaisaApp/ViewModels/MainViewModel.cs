@@ -4,6 +4,7 @@ using BharatEpaisaApp.Database;
 using BharatEpaisaApp.Database.Models;
 using BharatEpaisaApp.Pages.Popups;
 using System.Collections.ObjectModel;
+using System.Text.Json;
 
 namespace BharatEpaisaApp.ViewModels
 {
@@ -30,8 +31,21 @@ namespace BharatEpaisaApp.ViewModels
         {
             _databaseContext = databaseContext;
             LoadTransactionsAsync();
-            CheckUserReceivedTrx();
             LoadBalance();
+
+            // Subscribe to notification click events
+            MessagingCenter.Subscribe<object, string>(this, "NotificationClicked", (sender, data) =>
+            {
+                // Handle the notification click event
+                CheckUserReceivedTrx(data);
+            });
+
+            // Subscribe to notification click events
+            MessagingCenter.Subscribe<object, string>(this, "status", async (sender, data) =>
+            {
+                // Handle the notification click event
+                await CheckUserReceivedTrx(data);
+            });
         }
 
         private async Task LoadBalance()
@@ -53,7 +67,7 @@ namespace BharatEpaisaApp.ViewModels
                 var trx = query["transaction"] as Transaction;
                 if (trx != null)
                 {
-                    trx.AmtColor = "#FEBE00";
+                    trx.AmtColor = trx.Status == "Complete" ? "#0B6623" : "#FEBE00";
                     await _databaseContext.AddItemAsync(trx);
                     Transactions.Insert(0, trx);
                     //CheckUserInitTrxResponses(trx);
@@ -127,17 +141,19 @@ namespace BharatEpaisaApp.ViewModels
             Application.Current.UserAppTheme = isDarkTheme ? AppTheme.Dark : AppTheme.Light;
         }
 
-        private async Task   CheckUserReceivedTrx()
+        private async Task CheckUserReceivedTrx(string data)
         {
-            if (Preferences.ContainsKey("Transaction"))
+            Dictionary<string, string> dataDict = JsonSerializer.Deserialize<Dictionary<string, string>>(data);
+            var rId = dataDict["requestId"];
+            var sendMonetTrx = Transactions.FirstOrDefault(t => t.ReqId == rId, null);
+            if (sendMonetTrx != null && sendMonetTrx.Status != "Complete" && dataDict["status"] == "success")
             {
-                await App.Current.MainPage.DisplayAlert("Transaction Received", "test", "Ok");
-                Preferences.Remove("Transaction");
-            }
-            else if(Preferences.ContainsKey("Status"))
-            {
-                await App.Current.MainPage.DisplayAlert("Status Received", "test", "Ok");
-                Preferences.Remove("Status");
+                sendMonetTrx.AmtColor = "#0B6623";
+                await UpdateTransaction(sendMonetTrx);
+                Balance += sendMonetTrx.Amount;
+                UnclearedBal -= sendMonetTrx.Amount;
+                await SecureStorage.SetAsync("balance", Balance.ToString());
+                await SecureStorage.SetAsync("unclearedBal", UnclearedBal.ToString());
             }
         }
 

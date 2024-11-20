@@ -1,9 +1,10 @@
 const { logger } = require("firebase-functions/v1");
 const User = require("../models/user");
 const { getFirebaseAdminAuth, getFirebaseAdminDB } = require("../firebaseInit");
-
-const usersCollection = "Users";
-const awCollection = "AnonymousWallets";
+const {
+	usersCollection,
+	awCollection,
+} = require("../constants/collectionConstants");
 
 // update user cloud message token
 const updateUserCloudMsgToken = async (req, res) => {

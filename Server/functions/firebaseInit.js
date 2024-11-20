@@ -33,9 +33,18 @@ const getFirebaseAdminDB = () => {
 	}
 };
 
+const getFirebaseMessaging = () => {
+	if (firebaseApp) {
+		return firebaseApp.messaging();
+	} else {
+		undefined;
+	}
+};
+
 module.exports = {
 	getFirebaseAdminAuth,
 	initializeFirebaseApp,
 	getFirebaseAdminStorage,
 	getFirebaseAdminDB,
+	getFirebaseMessaging,
 };

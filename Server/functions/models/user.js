@@ -1,7 +1,7 @@
 const Joi = require("joi");
 
 const User = Joi.object({
-	id: Joi.string(),
+	id: Joi.string().allow(""),
 	firstName: Joi.string().required(),
 	lastName: Joi.string().required(),
 	mobileNo: Joi.string().required(),

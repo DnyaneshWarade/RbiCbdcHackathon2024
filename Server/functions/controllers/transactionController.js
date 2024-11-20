@@ -4,6 +4,50 @@ const os = require("os");
 const path = require("path");
 const { getFirebaseAdminStorage } = require("../firebaseInit");
 const fs = require("fs").promises;
+const { awCollection } = require("../constants/collectionConstants");
+const { getFirebaseAdminDB, getFirebaseMessaging } = require("../firebaseInit");
+
+const loadMoney = async (req, res) => {
+	try {
+		// Extract details from the request body
+		const { token, requestId } = req.body;
+
+		if (!token || !requestId) {
+			return res.status(400).json({
+				message: "Missing required fields: 'token', 'requestId'",
+			});
+		}
+
+		// ToDo : Add wallet state/commitment in the central log
+
+		// Send the success notification to the user
+		// Define the message payload
+		const message = {
+			notification: {
+				title: "Loaded Money Successfully",
+				body: "Amount has been loaded successfully kindly check transaction in app for details",
+			},
+			data: {
+				status: `{ "requestId": "${requestId}", "status": "success" }`,
+			},
+			token: token,
+		};
+
+		// Send the notification
+		const response = await getFirebaseMessaging().send(message);
+		logger.info("Notification sent successfully:", response);
+
+		res.status(200).json({
+			message: "Loaded money successfully",
+		});
+	} catch (error) {
+		logger.error(error);
+		res.status(500).json({
+			message: "Failed to load money",
+			error: error.message,
+		});
+	}
+};
 
 const getVerificationKeys = async () => {
 	try {
@@ -105,5 +149,6 @@ const verifyTransaction = async (req, res) => {
 };
 
 module.exports = {
+	loadMoney,
 	verifyTransaction,
 };
