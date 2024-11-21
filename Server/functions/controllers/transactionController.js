@@ -206,10 +206,17 @@ const senderToReceiverTx = async (req, res) => {
 		const response = await admin.messaging().send(message);
 		logger.info("Notification sent successfully:", response);
 		logger.info("transactionController senderToReceiverTx execution end");
+
 		// Return success or failed status
+		res.status(200).json({
+			message: "Notification sent successfully",
+		});
 	} catch (error) {
-		logger.error("Verification failed:", error);
-		return res.status(500).json({ error: "Internal server error" });
+		logger.error(error);
+		res.status(500).json({
+			message: "Failed to send notification from sender to receiver",
+			error: error.message,
+		});
 	}
 };
 
