@@ -1,4 +1,5 @@
 ﻿using BharatEpaisaApp.Database.Models;
+using BharatEpaisaApp.Services;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -10,8 +11,10 @@ namespace BharatEpaisaApp.Helper
         // Regular expression to match exactly 10 digits
         static readonly string mobileNoPattern = @"^\d{10}$";
         static readonly public string Key = "yourSecretKey123";
+        static public string WalletPublicKey;
         static private ICryptoTransform encyptCryptoTransform;
         static private ICryptoTransform decyptCryptoTransform;
+        static private NewNfcService nfcService;
         static public string LoggedInMobileNo { get; set; }
         static public string LoggedInMobilePin { get; set; }
 
@@ -123,6 +126,89 @@ namespace BharatEpaisaApp.Helper
         public static long GetEpochTime()
         {
             return (long)(DateTimeOffset.UtcNow - DateTimeOffset.UnixEpoch).TotalSeconds;
+        }
+
+        private static NewNfcService GetNfcService()
+        {
+            if (nfcService != null)
+            {
+                return nfcService;
+            }
+            nfcService = new NewNfcService();
+            return nfcService;
+        }
+
+        public static void StartNfcListening()
+        {
+            var nfc = GetNfcService();
+            if (nfc == null)
+            {
+                return;
+            }
+            nfc.BeginListening();
+        }
+
+        public static void StopNfcListening()
+        {
+            var nfc = GetNfcService();
+            if (nfc == null)
+            {
+                return;
+            }
+            nfc.StopListening();
+        }
+
+        public static async Task SendNfcMessage(string message)
+        {
+            if (string.IsNullOrEmpty(message))
+            {
+                return;
+            }
+
+            try
+            {
+                //// Check if permission is already granted
+                //PermissionStatus status = await Permissions.CheckStatusAsync<Permissions.Sms>();
+                //if (status != PermissionStatus.Granted)
+                //{
+                //    // Request permission
+                //    await Permissions.RequestAsync<Permissions.Sms>();
+                //}
+                var nfc = GetNfcService();
+                if (nfc == null)
+                {
+                    return ;
+                }
+                nfc.Publish(Plugin.NFC.NFCNdefTypeFormat.Mime);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
+
+        public static async Task ReadNfcMessage()
+        {
+            try
+            {
+                //// Check if permission is already granted
+                //PermissionStatus status = await Permissions.CheckStatusAsync<Permissions.Sms>();
+                //if (status != PermissionStatus.Granted)
+                //{
+                //    // Request permission
+                //    await Permissions.RequestAsync<Permissions.Sms>();
+                //}
+                var nfc = GetNfcService();
+                if (nfc == null)
+                {
+                    return;
+                }
+                //var message = nfc.GetMessage();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
         }
 
         public static ICollection<Denomination> GetDenominations()

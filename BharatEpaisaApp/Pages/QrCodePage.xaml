@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="BharatEpaisaApp.Pages.QrCodePage"
+             xmlns:viewmodel="clr-namespace:BharatEpaisaApp.ViewModels"
+             x:DataType="viewmodel:QrCodeViewModel"
+             xmlns:zxing="clr-namespace:ZXing.Net.Maui.Controls;assembly=ZXing.Net.MAUI.Controls"
+             Title="Bharat eRupee Wallet QR">
+    <VerticalStackLayout Margin="0,50,0,0">
+        <zxing:BarcodeGeneratorView
+          HeightRequest="300"
+          WidthRequest="300"
+          ForegroundColor="DarkBlue"
+          Value="{Binding WalletPublicKey}"
+          Format="QrCode"
+          Margin="20" />
+        <HorizontalStackLayout Spacing="20" HorizontalOptions="CenterAndExpand" Margin="0,20">
+            <Button Text="Receive Money"/>
+            <Button Text="Send QR"/>
+        </HorizontalStackLayout>
+        
+    </VerticalStackLayout>
+</ContentPage>

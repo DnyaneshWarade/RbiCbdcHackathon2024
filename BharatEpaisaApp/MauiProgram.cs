@@ -4,6 +4,7 @@ using BharatEpaisaApp.Pages.Popups;
 using BharatEpaisaApp.ViewModels;
 using CommunityToolkit.Maui;
 using BharatEpaisaApp.Database;
+using ZXing.Net.Maui.Controls;
 
 namespace BharatEpaisaApp
 {
@@ -15,6 +16,7 @@ namespace BharatEpaisaApp
             builder
                 .UseMauiApp<App>()
                 .UseMauiCommunityToolkit()
+                .UseBarcodeReader()
                 .ConfigureFonts(fonts =>
                 {
                     fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");

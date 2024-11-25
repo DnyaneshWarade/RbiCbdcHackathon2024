@@ -41,6 +41,7 @@ namespace BharatEpaisaApp.ViewModels
                     string? publicKey = await SecureStorage.Default.GetAsync("ECC_PublicKey");
                     if (!string.IsNullOrEmpty(publicKey))
                     {
+                        CommonFunctions.WalletPublicKey = publicKey;
                         using (HttpClient client = new HttpClient())
                         {
                             try

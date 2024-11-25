@@ -5,6 +5,8 @@ using BharatEpaisaApp.Database.Models;
 using BharatEpaisaApp.Pages.Popups;
 using System.Collections.ObjectModel;
 using System.Text.Json;
+using BharatEpaisaApp.Helper;
+using BharatEpaisaApp.Pages;
 
 namespace BharatEpaisaApp.ViewModels
 {
@@ -34,10 +36,11 @@ namespace BharatEpaisaApp.ViewModels
             LoadBalance();
 
             // Subscribe to notification click events
-            MessagingCenter.Subscribe<object, string>(this, "NotificationClicked", (sender, data) =>
+            MessagingCenter.Subscribe<object, string>(this, "NfcMessageReceived", async (sender, data) =>
             {
+                await App.Current.MainPage.DisplayAlert("NFC message received", data, "OK");
                 // Handle the notification click event
-                CheckUserReceivedTrx(data);
+                // CheckUserReceivedTrx(data);
             });
 
             // Subscribe to notification click events
@@ -71,7 +74,14 @@ namespace BharatEpaisaApp.ViewModels
                     await _databaseContext.AddItemAsync(trx);
                     Transactions.Insert(0, trx);
                     //CheckUserInitTrxResponses(trx);
-                    UnclearedBal += trx.Amount;
+                    if (trx.Status == "Complete")
+                    {
+                        Balance += trx.Amount;
+                    }
+                    else
+                    {
+                        UnclearedBal += trx.Amount;
+                    }
                     await SecureStorage.Default.SetAsync("unclearedBal", UnclearedBal.ToString());
                 }
             }
@@ -134,6 +144,18 @@ namespace BharatEpaisaApp.ViewModels
         public async Task SendMoney()
         {
             await Shell.Current.GoToAsync(nameof(SendMoneyPopup));
+        }
+
+        [RelayCommand]
+        public async Task QrCode()
+        {
+            await Shell.Current.GoToAsync(nameof(QrCodePage));
+        }
+
+        [RelayCommand]
+        public async Task ReceiveMoney()
+        {
+            CommonFunctions.StartNfcListening();
         }
 
         public void SetTheme(bool isDarkTheme)

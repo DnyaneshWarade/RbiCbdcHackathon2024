@@ -11,6 +11,8 @@ namespace BharatEpaisaApp
             Routing.RegisterRoute(nameof(MainPage), typeof(MainPage));
             Routing.RegisterRoute(nameof(RegisterPage), typeof(RegisterPage));
             Routing.RegisterRoute(nameof(SendMoneyPopup), typeof(SendMoneyPopup));
+            Routing.RegisterRoute(nameof(QrCodePage), typeof(QrCodePage));
+            Routing.RegisterRoute(nameof(ScanQrPopup), typeof(ScanQrPopup));
         }
     }
 }

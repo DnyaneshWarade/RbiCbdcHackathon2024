@@ -39,9 +39,11 @@
             <HorizontalStackLayout Spacing="10" Padding="0,20"
                                    HorizontalOptions="Center"
                                    Grid.Row="1">
-                <Button Text="Load Money" Clicked="LoadMoney_Clicked"/>
-                <Button Text="Send Money" Command="{Binding SendMoneyCommand}"/>
-                <Button Text="Unload Money" Command="{Binding ClearDataCommand}"/>
+                <Button Text="QR Code" Command="{Binding QrCodeCommand}"/>
+                <Button Text="Load" Clicked="LoadMoney_Clicked"/>
+                <Button Text="Send" Command="{Binding SendMoneyCommand}"/>
+                <Button Text="Receive" Command="{Binding ReceiveMoneyCommand}"/>
+                <Button Text="Unload" Command="{Binding ClearDataCommand}"/>
             </HorizontalStackLayout>
             <Label Text="Transaction history" Padding="10,0"
                    FontSize="18"

@@ -39,6 +39,7 @@ namespace BharatEpaisaApp.ViewModels
                 {
                     // Create the private account and store in keystore
                     (string publicKey, string privateKey) = CryptoOperations.GenerateECCKeyPair();
+                    CommonFunctions.WalletPublicKey = publicKey;
                     await SecureStorage.SetAsync("ECC_PublicKey", publicKey);
                     await SecureStorage.SetAsync("ECC_PrivateKey", privateKey);
                     string deviceModel = DeviceInfo.Model;

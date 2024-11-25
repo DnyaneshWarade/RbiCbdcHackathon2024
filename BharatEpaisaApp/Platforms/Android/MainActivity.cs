@@ -6,6 +6,7 @@ using AndroidX.Core.App;
 using AndroidX.Core.Content;
 using CommunityToolkit.Mvvm.Messaging;
 using BharatEpaisaApp.Database.Models;
+using Plugin.NFC;
 
 namespace BharatEpaisaApp
 {
@@ -17,6 +18,7 @@ namespace BharatEpaisaApp
 
         protected override void OnCreate(Bundle savedInstanceState)
         {
+            CrossNFC.Init(this);
             base.OnCreate(savedInstanceState);
             if (ContextCompat.CheckSelfPermission(this, Android.Manifest.Permission.PostNotifications) == Permission.Denied)
             {
@@ -29,7 +31,7 @@ namespace BharatEpaisaApp
         protected override void OnNewIntent(Intent intent)
         {
             base.OnNewIntent(intent);
-
+            CrossNFC.OnNewIntent(intent);
             if (intent.Extras != null)
             {
                 foreach (var key in intent.Extras.KeySet())
@@ -56,6 +58,14 @@ namespace BharatEpaisaApp
                 var notificaitonManager = (NotificationManager)GetSystemService(Android.Content.Context.NotificationService);
                 notificaitonManager.CreateNotificationChannel(channel);
             }
+        }
+
+        protected override void OnResume()
+        {
+            base.OnResume();
+
+            // Plugin NFC: Restart NFC listening on resume (needed for Android 10+) 
+            CrossNFC.OnResume();
         }
     }
 }

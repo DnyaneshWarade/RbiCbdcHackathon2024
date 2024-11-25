@@ -4,11 +4,16 @@ using BharatEpaisaApp.Helper;
 using BharatEpaisaApp.Database.Models;
 using System.Collections.ObjectModel;
 using Newtonsoft.Json;
+using Plugin.NFC;
+using BharatEpaisaApp.Pages;
+using BharatEpaisaApp.Pages.Popups;
 
 namespace BharatEpaisaApp.ViewModels
 {
     public partial class SendMoneyViewModel : ObservableObject
     {
+        private readonly Color primaryColorWithTransparency = Color.FromArgb("#4D007BFF");
+
         [ObservableProperty]
         ObservableCollection<Denomination> denominations = new ObservableCollection<Denomination>();
 
@@ -23,6 +28,18 @@ namespace BharatEpaisaApp.ViewModels
 
         [ObservableProperty]
         string error;
+
+        [ObservableProperty]
+        private string selectedIcon;
+
+        [ObservableProperty]
+        private Color icon1BackgroundColor;
+
+        [ObservableProperty]
+        private Color icon2BackgroundColor;
+
+        [ObservableProperty]
+        private Color icon3BackgroundColor;
 
         public event EventHandler ClosePopup;
 
@@ -85,6 +102,32 @@ namespace BharatEpaisaApp.ViewModels
             ClosePopup?.Invoke(this, EventArgs.Empty);
         }
 
+        [RelayCommand]
+        private void NfcTap()
+        {
+            ResetBackgroundColors();
+            Icon1BackgroundColor = primaryColorWithTransparency;
+            SelectedIcon = "NFC";
+            CommonFunctions.StartNfcListening();
+            CommonFunctions.SendNfcMessage("NFC test message");
+        }
+
+        [RelayCommand]
+        private void ShareTap()
+        {
+            ResetBackgroundColors();
+            Icon2BackgroundColor = primaryColorWithTransparency;
+            SelectedIcon = "Quick Share";
+        }
+
+        [RelayCommand]
+        private void DistanceTap()
+        {
+            ResetBackgroundColors();
+            Icon3BackgroundColor = primaryColorWithTransparency;
+            SelectedIcon = "Remote";
+        }
+
         internal void OnStepperValueCahnged()
         {
             Amount = 0;
@@ -93,5 +136,20 @@ namespace BharatEpaisaApp.ViewModels
                 Amount += item.Quantity * item.Value;
             }
         }
+
+        private void ResetBackgroundColors()
+        {
+            Icon1BackgroundColor = Colors.Transparent;
+            Icon2BackgroundColor = Colors.Transparent;
+            Icon3BackgroundColor = Colors.Transparent;
+        }
+
+        [RelayCommand]
+        public async Task ScanQr()
+        {
+            await Shell.Current.GoToAsync(nameof(ScanQrPopup));
+        }
+
+
     }
 }

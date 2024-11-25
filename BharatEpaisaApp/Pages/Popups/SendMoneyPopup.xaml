@@ -22,12 +22,15 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
-        <Entry Placeholder="Enter receiver mobile no"
-               FontSize="18"
-               Keyboard="Numeric"
-               Text="{Binding ReceiverMobileNo}"
-               Margin="0,20,0,0"/>
+        <HorizontalStackLayout Margin="0,20,0,0" Spacing="10">
+            <Button Text="Scan QR" Clicked="ScanQr_Clicked"/>
+            <Entry Placeholder="Enter receiver mobile no"
+                   FontSize="18"
+                   Keyboard="Numeric"
+                   Text="{Binding ReceiverMobileNo}"/>
+        </HorizontalStackLayout>
         <Entry Placeholder="Choose Notes"
                FontSize="18"
                Keyboard="Numeric"
@@ -62,11 +65,65 @@
                Text="{Binding Pin}"
                Margin="0,0,0,10"
                IsPassword="True" Grid.Row="3"/>
+
+        <VerticalStackLayout Spacing="5" Padding="10" Grid.Row="4">
+            <Label Text="Select transaction mode" FontSize="Medium" HorizontalOptions="Center" />
+
+            <Grid ColumnDefinitions="*,*,*" HorizontalOptions="Center">
+                <!-- Icon 1 -->
+                <Frame Grid.Column="0"
+                   Padding="10,0"
+                       Margin="10,0"
+                   CornerRadius="10"
+                   BackgroundColor="{Binding Icon1BackgroundColor}">
+                    <Image Source="nfc.png"
+                       WidthRequest="60" HeightRequest="60">
+                        <Image.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding NfcTapCommand}" />
+                        </Image.GestureRecognizers>
+                    </Image>
+                </Frame>
+
+                <!-- Icon 2 -->
+                <Frame Grid.Column="1"
+                   Padding="10,0"
+                    Margin="10,0"
+                   CornerRadius="10"
+                   BackgroundColor="{Binding Icon2BackgroundColor}">
+                    <Image Source="share.png"
+                       WidthRequest="60" HeightRequest="60" Margin="5">
+                        <Image.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding ShareTapCommand}" />
+                        </Image.GestureRecognizers>
+                    </Image>
+                </Frame>
+
+                <!-- Icon 3 -->
+                <Frame Grid.Column="2"
+                   Padding="10,0"
+                    Margin="10,0"
+                   CornerRadius="10"
+                   BackgroundColor="{Binding Icon3BackgroundColor}">
+                    <Image Source="distance.png"
+                       WidthRequest="60" HeightRequest="60">
+                        <Image.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding DistanceTapCommand}" />
+                        </Image.GestureRecognizers>
+                    </Image>
+                </Frame>
+            </Grid>
+
+            <Label Text="{Binding SelectedIcon}" 
+               FontSize="Small" 
+               HorizontalOptions="Center" 
+               TextColor="Blue" />
+        </VerticalStackLayout>
+        
         <Label Text="{Binding Error}"
-               TextColor="Red" Grid.Row="4"/>
+               TextColor="Red" Grid.Row="5"/>
         <Button Text="Proceed"
                 HorizontalOptions="Center"
                 FontSize="18"
-                Command="{Binding SendMoneyCommand}" Grid.Row="5"/>
+                Command="{Binding SendMoneyCommand}" Grid.Row="6"/>
     </Grid>
 </ContentPage>
