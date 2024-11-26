@@ -1,12 +1,16 @@
 const express = require("express");
 const {
 	loadMoney,
-	verifyTransaction,
+	senderToReceiverTx,
+	processTransaction,
+	receiverToSenderTx,
 } = require("../controllers/transactionController");
 
 const router = express.Router();
 
 router.post("/loadMoney", loadMoney);
-router.post("/verify", verifyTransaction);
+router.post("/processTx", processTransaction);
+router.post("/senderToReceiver", senderToReceiverTx);
+router.post("/receiverToSender", receiverToSenderTx);
 
 module.exports = router;
