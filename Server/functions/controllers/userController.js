@@ -5,6 +5,7 @@ const {
 	usersCollection,
 	awCollection,
 } = require("../constants/collectionConstants");
+const { getAnonymousWallet } = require("../helpers/walletHelper");
 
 // update user cloud message token
 const updateUserCloudMsgToken = async (req, res) => {
@@ -57,18 +58,12 @@ const getUserCloudMsgToken = async (req, res) => {
 				.send("Invalid data, please specify public key");
 		}
 
-		// check if entry already exists in db
-		var database = getFirebaseAdminDB();
-		let querySnap = await database
-			.collection(awCollection)
-			.where("publicKey", "==", req.query.publicKey)
-			.get();
-
-		if (!querySnap.docs[0]) {
+		// get the wallet  db
+		var wallet = await getAnonymousWallet(req.query.publicKey);
+		if (!wallet) {
 			return res.status(404).send("key not found");
 		} else {
-			//let docs = querySnap.docs.map((doc) => doc.data());
-			return res.status(200).json(querySnap.docs[0].data());
+			return res.status(200).json(wallet);
 		}
 	} catch (error) {
 		logger.error(error);

@@ -10,6 +10,8 @@ const {
 } = require("../constants/collectionConstants");
 const { getFirebaseAdminDB, getFirebaseMessaging } = require("../firebaseInit");
 const { encryptDataWithPublicKey } = require("../helpers/crypto");
+const { getAnonymousWallet } = require("../helpers/walletHelper");
+const { Console } = require("console");
 
 const loadMoney = async (req, res) => {
 	try {
@@ -48,6 +50,66 @@ const loadMoney = async (req, res) => {
 		logger.error(error);
 		res.status(500).json({
 			message: "Failed to load money",
+			error: error.message,
+		});
+	}
+};
+
+const processSenderTransaction = async (req, res) => {
+	try {
+		// Extract details from the request body
+		const {
+			receiverPublicKey,
+			requestId,
+			senderZkp,
+			newWalletState,
+			amount,
+		} = req.body;
+
+		if (
+			!receiverPublicKey ||
+			!requestId ||
+			!senderZkp ||
+			!newWalletState ||
+			!amount
+		) {
+			return res.status(400).json({
+				message: "Missing required fields",
+			});
+		}
+
+		var token;
+		// try to get the token from public key
+		var wallet = await getAnonymousWallet(receiverPublicKey);
+		if (!wallet) {
+			return res.status(404).send("public key not found");
+		} else {
+			token = wallet.cloudMsgToken;
+		}
+
+		// Define the message payload
+		const message = {
+			notification: {
+				title: "Transaction Initiated",
+				body: "Transaction has been initiated kindly check app for details",
+			},
+			data: {
+				transaction: JSON.stringify(req.body),
+			},
+			token: token,
+		};
+
+		// Send the notification
+		const response = await getFirebaseMessaging().send(message);
+		logger.info("Notification sent successfully:", response);
+
+		res.status(200).json({
+			message: "Transaction initialized successfully",
+		});
+	} catch (error) {
+		logger.error(error);
+		res.status(500).json({
+			message: "Failed to initiate transaction",
 			error: error.message,
 		});
 	}
@@ -385,6 +447,7 @@ const receiverToSenderTx = async (req, res) => {
 
 module.exports = {
 	loadMoney,
+	processSenderTransaction,
 	senderToReceiverTx,
 	processTransaction,
 	receiverToSenderTx,

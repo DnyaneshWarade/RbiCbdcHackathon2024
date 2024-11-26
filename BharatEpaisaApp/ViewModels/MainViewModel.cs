@@ -44,7 +44,7 @@ namespace BharatEpaisaApp.ViewModels
             });
 
             // Subscribe to notification click events
-            MessagingCenter.Subscribe<object, string>(this, "status", async (sender, data) =>
+            MessagingCenter.Subscribe<object, string>(this, "transaction", async (sender, data) =>
             {
                 // Handle the notification click event
                 await CheckUserReceivedTrx(data);

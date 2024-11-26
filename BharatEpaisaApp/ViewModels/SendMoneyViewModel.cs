@@ -4,9 +4,8 @@ using BharatEpaisaApp.Helper;
 using BharatEpaisaApp.Database.Models;
 using System.Collections.ObjectModel;
 using Newtonsoft.Json;
-using Plugin.NFC;
-using BharatEpaisaApp.Pages;
 using BharatEpaisaApp.Pages.Popups;
+using System.Text;
 
 namespace BharatEpaisaApp.ViewModels
 {
@@ -64,9 +63,10 @@ namespace BharatEpaisaApp.ViewModels
         async Task SendMoney()
         {
             Error = string.Empty;
-            if (!CommonFunctions.ValidatePhoneNumber(ReceiverMobileNo))
+            string? storedPin = await SecureStorage.Default.GetAsync("pin");
+            if (storedPin != Pin)
             {
-                Error = "Enter valid receiver number";
+                Error = "Enter valid pin";
                 return;
             }
             if(Amount < 0)
@@ -87,19 +87,25 @@ namespace BharatEpaisaApp.ViewModels
                 }
             }
             var reqId = CommonFunctions.GetEpochTime();
-            var message = "{" + $"\"requestId\": \"{reqId}\",\"action\":\"sendMoney\",\"amount\": {Amount}, \"from\": {CommonFunctions.LoggedInMobileNo}, \"pin\": {Pin}, \"to\": {ReceiverMobileNo}, \"desc\":\"Send money\", \"denominations\": {denominationJson.Remove(denominationJson.Length - 1) + "}"}" + "}";
-            //CommonFunctions.SendEncryptedSms(ReceiverMobileNo, message);
+            var data = "{" + $"\"requestId\": \"{reqId}\", \"amount\": {Amount}, \"senderPublicKey\": \"{CommonFunctions.WalletPublicKey}\", \"receiverPublicKey\": \"{ReceiverMobileNo}\", \"desc\":\"Send money\", \"denominations\": {denominationJson.Remove(denominationJson.Length - 1) + "}"}, \"senderZkp\": \"todo\", \"newWalletState\": \"todo\"" + "}";
 
-            
-            await SecureStorage.Default.SetAsync("denominations", JsonConvert.SerializeObject(_userAvailableDenominations));
-            Transaction newItem = new Transaction { ReqId = reqId.ToString(), Amount = Amount, From = CommonFunctions.LoggedInMobileNo, To = ReceiverMobileNo, Status = "In Process", Desc = "Send money" };
+            using (var client = new HttpClient())
+            {
+                var trxContent = new StringContent(data, Encoding.UTF8, "application/json");
+                var awRes = await client.PostAsync($"{Constants.ApiURL}/transaction/senderToReceiverTx", trxContent);
+                if (awRes.IsSuccessStatusCode)
+                {
+                    await SecureStorage.Default.SetAsync("denominations", JsonConvert.SerializeObject(_userAvailableDenominations));
+                    Transaction newItem = new Transaction { ReqId = reqId.ToString(), Amount = Amount, From = CommonFunctions.LoggedInMobileNo, To = ReceiverMobileNo, Status = "Complete", Desc = "Send money" };
 
-            var navigationParameter = new Dictionary<string, object>
+                    var navigationParameter = new Dictionary<string, object>
                                             {
                                                 { "transaction", newItem }
                                             };
-            await Shell.Current.GoToAsync("..", true, navigationParameter);
-            ClosePopup?.Invoke(this, EventArgs.Empty);
+                    await Shell.Current.GoToAsync("..", true, navigationParameter);
+                    ClosePopup?.Invoke(this, EventArgs.Empty);
+                }
+            }
         }
 
         [RelayCommand]
