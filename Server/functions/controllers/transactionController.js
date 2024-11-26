@@ -9,7 +9,7 @@ const {
 	txLogCollection,
 } = require("../constants/collectionConstants");
 const { getFirebaseAdminDB, getFirebaseMessaging } = require("../firebaseInit");
-const { encryptDataWithPublicKey } = require("../services/crypto");
+const { encryptDataWithPublicKey } = require("../helpers/crypto");
 
 const loadMoney = async (req, res) => {
 	try {
