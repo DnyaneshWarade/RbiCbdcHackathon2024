@@ -12,19 +12,74 @@ const { getFirebaseAdminDB, getFirebaseMessaging } = require("../firebaseInit");
 const { encryptDataWithPublicKey } = require("../helpers/crypto");
 const { getAnonymousWallet } = require("../helpers/walletHelper");
 const { Console } = require("console");
+const { getVerificationKey } = require("../helpers/transactionHelper");
 
 const loadMoney = async (req, res) => {
 	try {
 		// Extract details from the request body
-		const { token, requestId } = req.body;
+		const { token, requestId, publicKey, proof, publicInputs, amount } =
+			req.body;
 
-		if (!token || !requestId) {
+		if (
+			!token ||
+			!requestId ||
+			!publicKey ||
+			!proof ||
+			!publicInputs ||
+			!amount
+		) {
 			return res.status(400).json({
-				message: "Missing required fields: 'token', 'requestId'",
+				message: "Missing required fields",
 			});
 		}
+		const verificationKey = await getVerificationKey("load_money");
 
-		// ToDo : Add wallet state/commitment in the central log
+		// Verify proof
+		const isProofValid = await snarkjs.groth16.verify(
+			verificationKey,
+			publicInputs,
+			proof
+		);
+
+		if (!isProofValid) {
+			logger.error("Invalid proof");
+			return res.status(400).json({ error: "Invalid proof" });
+		}
+
+		// Retrieve balance from database
+		const database = getFirebaseAdminDB();
+		const querySnap = await database
+			.collection(awCollection)
+			.where("publicKey", "==", publicKey)
+			.get();
+
+		if (querySnap.empty) {
+			logger.error("User not found");
+			return res.status(404).json({ error: "User not found" });
+		}
+
+		const doc = querySnap.docs[0];
+		const data = doc.data();
+
+		if (amount > 0) {
+			logger.error("Amount should be positive");
+			return res.status(400).json({ error: "Amount should be positive" });
+		}
+
+		// Update balances
+		const newBalance = data.balance + amount;
+
+		await doc.ref.update({ balance: newBalance });
+
+		// Log the transaction
+		const transactionLog = {
+			proof,
+			publicInputs,
+			requestId,
+			timestamp: new Date().toISOString(),
+		};
+
+		await database.collection(txLogCollection).add(transactionLog);
 
 		// Send the success notification to the user
 		// Define the message payload
@@ -35,6 +90,10 @@ const loadMoney = async (req, res) => {
 			},
 			data: {
 				status: `{ "requestId": "${requestId}", "status": "success" }`,
+				accountState: encryptDataWithPublicKey(
+					publicKey,
+					JSON.stringify({ balance: newBalance })
+				),
 			},
 			token: token,
 		};
@@ -112,45 +171,6 @@ const processSenderTransaction = async (req, res) => {
 			message: "Failed to initiate transaction",
 			error: error.message,
 		});
-	}
-};
-
-const getVerificationKeys = async () => {
-	try {
-		const bucket = getFirebaseAdminStorage().bucket();
-		const tempFilePathSender = path.join(
-			os.tmpdir(),
-			"sender_verification_key.json"
-		); // Universal temp directory
-		const tempFilePathReceiver = path.join(
-			os.tmpdir(),
-			"receiver_verification_key.json"
-		);
-
-		// Download the verification keys from Firebase Storage
-		await bucket
-			.file("verification/sender_verification_key.json")
-			.download({ destination: tempFilePathSender });
-		await bucket
-			.file("verification/receiver_verification_key.json")
-			.download({ destination: tempFilePathReceiver });
-
-		// Read and parse the verification key JSON
-		const verificationKeyDataSender = await fs.readFile(
-			tempFilePathSender,
-			"utf-8"
-		);
-		const verificationKeyDataReceiver = await fs.readFile(
-			tempFilePathReceiver,
-			"utf-8"
-		);
-		return {
-			senderVerificationKey: JSON.parse(verificationKeyDataSender),
-			receiverVerificationKey: JSON.parse(verificationKeyDataReceiver),
-		};
-	} catch (error) {
-		logger.error("Error fetching verification key:", error);
-		throw new Error("Failed to retrieve verification key");
 	}
 };
 
@@ -254,9 +274,8 @@ const processTransaction = async (req, res) => {
 		}
 
 		// Fetch the verification keys from Firebase Storage
-		const { senderVerificationKey, receiverVerificationKey } =
-			await getVerificationKeys();
-
+		const senderVerificationKey = getVerificationKey("sender");
+		const receiverVerificationKey = getVerificationKey("receiver");
 		// Step 2: Verify sender's proof
 		const isSenderProofValid = await snarkjs.groth16.verify(
 			senderVerificationKey,
