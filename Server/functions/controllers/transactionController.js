@@ -445,10 +445,74 @@ const receiverToSenderTx = async (req, res) => {
 	}
 };
 
+const generateProof = async (req, res) => {
+	logger.info("transactionController generateSenderProof execution started");
+	try {
+		// validate the body
+		if (!req.body) {
+			logger.error("Invalid request data");
+			return res.status(400).send("Invalid data");
+		}
+
+		// Validate input
+		const { isSender, input } = req.body;
+		if (!input) {
+			logger.error("Missing required fields");
+			return res.status(400).json({ error: "Missing required fields" });
+		}
+
+		const { proof, publicSignals } = await calculateProof(input, isSender);
+		logger.info("transactionController generateSenderProof execution end");
+
+		res.status(200).json({
+			success: true,
+			data: { proof, publicSignals },
+		});
+	} catch (error) {
+		logger.error(error);
+		res.status(500).json({
+			message: "Failed to generate proof",
+			success: false,
+		});
+	}
+};
+
+async function calculateProof(input, isSender) {
+	console.log(input, isSender);
+	const bucket = getFirebaseAdminStorage().bucket();
+	const tempFileCircuitPath = path.join(os.tmpdir(), "circuit.wasm");
+	const tempFileZkeyPath = path.join(os.tmpdir(), "circuit_0001.zkey");
+
+	// Download from Firebase Storage
+	await bucket
+		.file(`proof/${isSender ? "sender" : "receiver"}_circuit.wasm`)
+		.download({ destination: tempFileCircuitPath });
+	await bucket
+		.file(`proof/${isSender ? "sender" : "receiver"}_circuit_0001.zkey`)
+		.download({ destination: tempFileZkeyPath });
+
+	// Read and parse the verification key JSON
+	const circuitData = await fs.readFile(tempFileCircuitPath);
+	const zkeyData = await fs.readFile(tempFileZkeyPath);
+	try {
+		const res = await snarkjs.groth16.fullProve(
+			input,
+			circuitData,
+			zkeyData
+		);
+		console.log("res", res);
+		const { proof, publicSignals } = res;
+		return { proof, publicSignals };
+	} catch (error) {
+		logger.error(error);
+	}
+}
+
 module.exports = {
 	loadMoney,
 	processSenderTransaction,
 	senderToReceiverTx,
 	processTransaction,
 	receiverToSenderTx,
+	generateProof,
 };
