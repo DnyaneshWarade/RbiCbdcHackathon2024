@@ -1,4 +1,8 @@
+const { logger } = require("firebase-functions");
 const { getFirebaseAdminStorage } = require("../firebaseInit");
+const os = require("os");
+const path = require("path");
+const fs = require("fs").promises;
 
 const getVerificationKey = async (name) => {
 	try {
@@ -15,9 +19,8 @@ const getVerificationKey = async (name) => {
 
 		// Read and parse the verification key JSON
 		const verificationKeyData = await fs.readFile(tempFilePath, "utf-8");
-		return {
-			verificationKey: JSON.parse(verificationKeyData),
-		};
+
+		return JSON.parse(verificationKeyData);
 	} catch (error) {
 		logger.error("Error fetching verification key:", error);
 		throw new Error("Failed to retrieve verification key");

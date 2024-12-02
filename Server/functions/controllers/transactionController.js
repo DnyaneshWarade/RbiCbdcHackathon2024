@@ -61,11 +61,6 @@ const loadMoney = async (req, res) => {
 		const doc = querySnap.docs[0];
 		const data = doc.data();
 
-		if (amount > 0) {
-			logger.error("Amount should be positive");
-			return res.status(400).json({ error: "Amount should be positive" });
-		}
-
 		// Update balances
 		const newBalance = data.balance + amount;
 
@@ -73,9 +68,9 @@ const loadMoney = async (req, res) => {
 
 		// Log the transaction
 		const transactionLog = {
-			proof,
-			publicInputs,
-			requestId,
+			proof: JSON.stringify(proof),
+			publicInputs: JSON.stringify(publicInputs),
+			requestId: requestId,
 			timestamp: new Date().toISOString(),
 		};
 
@@ -474,13 +469,13 @@ const generateProof = async (req, res) => {
 		}
 
 		// Validate input
-		const { isSender, input } = req.body;
-		if (!input) {
+		const { name, input } = req.body;
+		if (!input || !name) {
 			logger.error("Missing required fields");
 			return res.status(400).json({ error: "Missing required fields" });
 		}
 
-		const { proof, publicSignals } = await calculateProof(input, isSender);
+		const { proof, publicSignals } = await calculateProof(input, name);
 		logger.info("transactionController generateSenderProof execution end");
 
 		res.status(200).json({
@@ -496,18 +491,20 @@ const generateProof = async (req, res) => {
 	}
 };
 
-async function calculateProof(input, isSender) {
-	console.log(input, isSender);
+async function calculateProof(input, name) {
+	if (!input || !name) {
+		return;
+	}
 	const bucket = getFirebaseAdminStorage().bucket();
 	const tempFileCircuitPath = path.join(os.tmpdir(), "circuit.wasm");
 	const tempFileZkeyPath = path.join(os.tmpdir(), "circuit_0001.zkey");
 
 	// Download from Firebase Storage
 	await bucket
-		.file(`proof/${isSender ? "sender" : "receiver"}_circuit.wasm`)
+		.file(`proof/${name}_circuit.wasm`)
 		.download({ destination: tempFileCircuitPath });
 	await bucket
-		.file(`proof/${isSender ? "sender" : "receiver"}_circuit_0001.zkey`)
+		.file(`proof/${name}_circuit_0001.zkey`)
 		.download({ destination: tempFileZkeyPath });
 
 	// Read and parse the verification key JSON
@@ -519,7 +516,6 @@ async function calculateProof(input, isSender) {
 			circuitData,
 			zkeyData
 		);
-		console.log("res", res);
 		const { proof, publicSignals } = res;
 		return { proof, publicSignals };
 	} catch (error) {
