@@ -51,7 +51,9 @@ namespace BharatEpaisaApp.ViewModels
                     if (awRes.IsSuccessStatusCode)
                     {
                         // get the previous load money and add current one in it
-                        var moneyAvailableJson = await SecureStorage.Default.GetAsync("denominations");
+                        var isAnonymousMode = Preferences.Get(Constants.IsAnonymousMode, false);
+                        var denominations = isAnonymousMode ? Constants.AnonymousDenominationsStr : Constants.NormalDenominationsStr;
+                        var moneyAvailableJson = await SecureStorage.Default.GetAsync(denominations);
                         Collection<Denomination> moneyAvailableCollection;
                         if (!string.IsNullOrWhiteSpace(moneyAvailableJson) && moneyAvailableJson != "null")
                         {
@@ -75,8 +77,8 @@ namespace BharatEpaisaApp.ViewModels
                                 moneyAvailableCollection.Add(item);
                             }
                         }
-                        await SecureStorage.Default.SetAsync("denominations", JsonConvert.SerializeObject(moneyAvailableCollection));
-                        Transaction newItem = new Transaction { ReqId = reqId.ToString(), Amount = Amount, To = CommonFunctions.LoggedInMobileNo, Status = "Complete", Desc = "Load money" };
+                        await SecureStorage.Default.SetAsync(denominations, JsonConvert.SerializeObject(moneyAvailableCollection));
+                        Transaction newItem = new Transaction { ReqId = reqId.ToString(), Amount = Amount, To = CommonFunctions.LoggedInMobileNo, Status = "Complete", Desc = "Load money", IsAnonymous = isAnonymousMode };
 
                         var navigationParameter = new Dictionary<string, object>
                                             {

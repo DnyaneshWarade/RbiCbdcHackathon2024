@@ -12,6 +12,7 @@ namespace BharatEpaisaApp.Helper
         static readonly string mobileNoPattern = @"^\d{10}$";
         static readonly public string Key = "yourSecretKey123";
         static public string WalletPublicKey;
+        static public string CloudMessaginToken;
         static private ICryptoTransform encyptCryptoTransform;
         static private ICryptoTransform decyptCryptoTransform;
         static private NewNfcService nfcService;

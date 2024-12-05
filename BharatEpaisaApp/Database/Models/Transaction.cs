@@ -12,6 +12,7 @@ namespace BharatEpaisaApp.Database.Models
         public string To { get; set; }
         public string Status { get; set; }
         public string AmtColor { get; set; }  
+        public bool IsAnonymous { get; set; }  
 
         public Transaction Clone() => MemberwiseClone() as Transaction;
     }

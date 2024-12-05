@@ -20,7 +20,7 @@ namespace BharatEpaisaApp.ViewModels
         string receiverMobileNo;
 
         [ObservableProperty]
-        int amount;
+        double amount;
 
         [ObservableProperty]
         string pin;
@@ -43,6 +43,7 @@ namespace BharatEpaisaApp.ViewModels
         public event EventHandler ClosePopup;
 
         private Collection<Denomination> _userAvailableDenominations;
+        private string _denominationStr;
         public SendMoneyViewModel()
         {
             Init();
@@ -50,7 +51,9 @@ namespace BharatEpaisaApp.ViewModels
 
         async Task Init()
         {
-            var moneyAvailableJson = await SecureStorage.Default.GetAsync("denominations");
+            var isAnonymousMode = Preferences.Get(Constants.IsAnonymousMode, false);
+            _denominationStr = isAnonymousMode ? Constants.AnonymousDenominationsStr : Constants.NormalDenominationsStr;
+            var moneyAvailableJson = await SecureStorage.Default.GetAsync(_denominationStr);
             _userAvailableDenominations = JsonConvert.DeserializeObject<Collection<Denomination>>(moneyAvailableJson);
             foreach (var item in _userAvailableDenominations)
             {
@@ -87,16 +90,33 @@ namespace BharatEpaisaApp.ViewModels
                 }
             }
             var reqId = CommonFunctions.GetEpochTime();
-            var data = "{" + $"\"requestId\": \"{reqId}\", \"amount\": {Amount}, \"senderPublicKey\": \"{CommonFunctions.WalletPublicKey}\", \"receiverPublicKey\": \"{ReceiverMobileNo}\", \"desc\":\"Send money\", \"denominations\": {denominationJson.Remove(denominationJson.Length - 1) + "}"}, \"senderZkp\": \"todo\", \"newWalletState\": \"todo\"" + "}";
+            var isAnonymousMode = Preferences.Get(Constants.IsAnonymousMode, false);
+            var trx = new Transaction()
+            {
+                ReqId = reqId.ToString(),
+                Desc = "Send money",
+                Amount = Amount,
+                IsAnonymous = isAnonymousMode,
+                Status = "In Progress"
+            };
+            var serverTrx = new ServerTransaction()
+            {
+                Trx = trx,
+                Denominations = denominationJson,
+                ReceiverPublicKey = ReceiverMobileNo,
+                SenderCloudToken = CommonFunctions.CloudMessaginToken,
+                SenderZkp = "ToDo"
+            };
 
             using (var client = new HttpClient())
             {
+                var data = JsonConvert.SerializeObject(serverTrx);
                 var trxContent = new StringContent(data, Encoding.UTF8, "application/json");
                 var awRes = await client.PostAsync($"{Constants.ApiURL}/transaction/senderToReceiverTx", trxContent);
                 if (awRes.IsSuccessStatusCode)
                 {
-                    await SecureStorage.Default.SetAsync("denominations", JsonConvert.SerializeObject(_userAvailableDenominations));
-                    Transaction newItem = new Transaction { ReqId = reqId.ToString(), Amount = Amount, From = CommonFunctions.LoggedInMobileNo, To = ReceiverMobileNo, Status = "Complete", Desc = "Send money" };
+                    await SecureStorage.Default.SetAsync(_denominationStr, JsonConvert.SerializeObject(_userAvailableDenominations));
+                    Transaction newItem = new Transaction { ReqId = reqId.ToString(), Amount = Amount, From = CommonFunctions.LoggedInMobileNo, To = ReceiverMobileNo, Status = "In Progress", Desc = "Send money" };
 
                     var navigationParameter = new Dictionary<string, object>
                                             {

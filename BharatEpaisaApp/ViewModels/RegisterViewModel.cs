@@ -46,6 +46,7 @@ namespace BharatEpaisaApp.ViewModels
 
                     // First store the anonymous wallet in details in server
                     var token = Preferences.Get("DeviceToken", "");
+                    CommonFunctions.CloudMessaginToken = token;
                     AnonymousWallet aWallet = new AnonymousWallet("", token, publicKey, true);
                     string awPayload = JsonConvert.SerializeObject(aWallet);
                     HttpClient client = new HttpClient();

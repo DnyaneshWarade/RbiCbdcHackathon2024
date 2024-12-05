@@ -73,6 +73,7 @@ namespace BharatEpaisaApp.ViewModels
                                         Console.WriteLine("token updated successfully");
                                     }
                                 }
+                                CommonFunctions.CloudMessaginToken = awObj.cloudMsgToken;
                             }
                             catch (HttpRequestException e)
                             {
