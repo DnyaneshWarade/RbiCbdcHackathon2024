@@ -36,6 +36,7 @@ namespace BharatEpaisaApp
             builder.Services.AddSingleton<DatabaseContext>();
             builder.Services.AddTransient<SendMoneyPopup>();
 
+            builder.Services.AddHybridWebView();
             return builder.Build();
         }
     }

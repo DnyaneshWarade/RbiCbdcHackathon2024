@@ -6,7 +6,7 @@ namespace BharatEpaisaApp.Helper.ValueConverter
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            if (long.TryParse(value.ToString(), out var epoch))
+            if (value != null && long.TryParse(value.ToString(), out var epoch))
             {
                 DateTime dateTime = DateTimeOffset.FromUnixTimeSeconds(epoch).LocalDateTime;
                 return dateTime.ToString("dd-MM-yyyy"); // Customize the format as needed

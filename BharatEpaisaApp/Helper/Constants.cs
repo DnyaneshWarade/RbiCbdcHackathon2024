@@ -12,5 +12,6 @@
         static public readonly string AnonymousDenominationsStr = "AnonymousDenominations";
         static public readonly string NormalDenominationsStr = "NormalDenominations";
         static public readonly string IsAnonymousMode = "IsAnonymousMode";
+        static public readonly double MaxAnonymousWalletBal = 2000;
     }
 }

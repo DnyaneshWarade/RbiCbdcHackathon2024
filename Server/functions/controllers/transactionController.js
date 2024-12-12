@@ -17,28 +17,21 @@ const { getVerificationKey } = require("../helpers/transactionHelper");
 const loadMoney = async (req, res) => {
 	try {
 		// Extract details from the request body
-		const { token, requestId, publicKey, proof, publicInputs, amount } =
-			req.body;
+		const { token, requestId, zkp, accountState, blind } = req.body;
 
-		if (
-			!token ||
-			!requestId ||
-			!publicKey ||
-			!proof ||
-			!publicInputs ||
-			!amount
-		) {
+		if (!token || !requestId || !zkp || !accountState || !blind) {
 			return res.status(400).json({
 				message: "Missing required fields",
 			});
 		}
+		const zkpJson = JSON.parse(zkp);
 		const verificationKey = await getVerificationKey("load_money");
 
 		// Verify proof
 		const isProofValid = await snarkjs.groth16.verify(
 			verificationKey,
-			publicInputs,
-			proof
+			zkpJson.publicSignals,
+			zkpJson.proof
 		);
 
 		if (!isProofValid) {
@@ -46,34 +39,14 @@ const loadMoney = async (req, res) => {
 			return res.status(400).json({ error: "Invalid proof" });
 		}
 
-		// Retrieve balance from database
-		const database = getFirebaseAdminDB();
-		const querySnap = await database
-			.collection(awCollection)
-			.where("publicKey", "==", publicKey)
-			.get();
-
-		if (querySnap.empty) {
-			logger.error("User not found");
-			return res.status(404).json({ error: "User not found" });
-		}
-
-		const doc = querySnap.docs[0];
-		const data = doc.data();
-
-		// Update balances
-		const newBalance = data.balance + amount;
-
-		await doc.ref.update({ balance: newBalance });
-
 		// Log the transaction
 		const transactionLog = {
-			proof: JSON.stringify(proof),
-			publicInputs: JSON.stringify(publicInputs),
+			proof: JSON.stringify(zkpJson.proof),
 			requestId: requestId,
+			accountState: accountState,
 			timestamp: new Date().toISOString(),
 		};
-
+		var database = getFirebaseAdminDB();
 		await database.collection(txLogCollection).add(transactionLog);
 
 		// Send the success notification to the user
@@ -85,10 +58,10 @@ const loadMoney = async (req, res) => {
 			},
 			data: {
 				status: `{ "requestId": "${requestId}", "status": "success" }`,
-				accountState: encryptDataWithPublicKey(
-					publicKey,
-					JSON.stringify({ balance: newBalance })
-				),
+				// accountState: encryptDataWithPublicKey(
+				// 	publicKey,
+				// 	JSON.stringify({ balance: newBalance })
+				// ),
 			},
 			token: token,
 		};
@@ -478,10 +451,7 @@ const generateProof = async (req, res) => {
 		const { proof, publicSignals } = await calculateProof(input, name);
 		logger.info("transactionController generateSenderProof execution end");
 
-		res.status(200).json({
-			success: true,
-			data: { proof, publicSignals },
-		});
+		res.status(200).json({ proof, publicSignals });
 	} catch (error) {
 		logger.error(error);
 		res.status(500).json({
@@ -523,6 +493,49 @@ async function calculateProof(input, name) {
 	}
 }
 
+const getzkwasm = async (req, res) => {
+	logger.info("transactionController getzkwasm execution started");
+	try {
+		// validate the body
+		if (!req.query.name) {
+			logger.error("Invalid request data");
+			return res.status(400).send("Invalid data");
+		}
+
+		const bucket = getFirebaseAdminStorage().bucket();
+		const tempFileCircuitPath = path.join(os.tmpdir(), "circuit.wasm");
+		const tempFileZkeyPath = path.join(os.tmpdir(), "circuit_0001.zkey");
+
+		// Download from Firebase Storage
+		await bucket
+			.file(`proof/${req.query.name}_circuit.wasm`)
+			.download({ destination: tempFileCircuitPath });
+		await bucket
+			.file(`proof/${req.query.name}_circuit_0001.zkey`)
+			.download({ destination: tempFileZkeyPath });
+
+		// Read and parse the verification key JSON
+		const circuitData = await fs.readFile(tempFileCircuitPath);
+		const zkeyData = await fs.readFile(tempFileZkeyPath);
+
+		logger.info("transactionController getzkwasm execution end");
+		res.set("access-control-allow-origin", "*");
+		res.set("cross-origin-opener-policy", "*");
+		res.set("cross-origin-resource-policy", "*");
+		res.set("x-frame-options", "*");
+		res.status(200).json({
+			success: true,
+			data: { circuitData, zkeyData },
+		});
+	} catch (error) {
+		logger.error(error);
+		res.status(500).json({
+			message: "Failed to get the circuit files",
+			success: false,
+		});
+	}
+};
+
 module.exports = {
 	loadMoney,
 	processSenderTransaction,
@@ -530,4 +543,5 @@ module.exports = {
 	processTransaction,
 	receiverToSenderTx,
 	generateProof,
+	getzkwasm,
 };

@@ -6,6 +6,7 @@ const {
 	processTransaction,
 	receiverToSenderTx,
 	generateProof,
+	getzkwasm,
 } = require("../controllers/transactionController");
 
 const router = express.Router();
@@ -15,5 +16,6 @@ router.post("/processTx", processTransaction);
 router.post("/senderToReceiverTx", processSenderTransaction);
 router.post("/receiverToSender", receiverToSenderTx);
 router.post("/generateProof", generateProof);
+router.get("/getzkwasm", getzkwasm);
 
 module.exports = router;
