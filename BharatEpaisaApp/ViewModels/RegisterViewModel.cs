@@ -40,8 +40,8 @@ namespace BharatEpaisaApp.ViewModels
                     // Create the private account and store in keystore
                     (string publicKey, string privateKey) = CryptoOperations.GenerateECCKeyPair();
                     CommonFunctions.WalletPublicKey = publicKey;
-                    await SecureStorage.SetAsync("ECC_PublicKey", publicKey);
-                    await SecureStorage.SetAsync("ECC_PrivateKey", privateKey);
+                    await SecureStorage.SetAsync(Constants.PublicKeyStr, publicKey);
+                    await SecureStorage.SetAsync(Constants.PrivateKeyStr, privateKey);
                     string deviceModel = DeviceInfo.Model;
 
                     // First store the anonymous wallet in details in server
@@ -54,7 +54,8 @@ namespace BharatEpaisaApp.ViewModels
                     var awRes = await client.PostAsync($"{Constants.ApiURL}/user/updateUserCloudMsgToken", awContent);
                     if (awRes.IsSuccessStatusCode)
                     {
-                        User user = new User("", firstName, lastName, mobileNo, pin, deviceModel, true);
+                        var hash = CryptoOperations.ComputeSha256Hash(mobileNo);
+                        User user = new User("", firstName, lastName, mobileNo, pin, hash, deviceModel, true);
                         string payload = JsonConvert.SerializeObject(user);
                         var content = new StringContent(payload, Encoding.UTF8, "application/json");
                         var res = await client.PostAsync($"{Constants.ApiURL}/user/updateUser", content);

@@ -8,7 +8,7 @@ const {
 const router = express.Router();
 
 router.post("/updateUserCloudMsgToken", updateUserCloudMsgToken);
-router.get("/getUserCloudMsgToken", getUserCloudMsgToken);
+router.post("/getUserCloudMsgToken", getUserCloudMsgToken);
 router.post("/updateUser", updateUser);
 
 module.exports = router;

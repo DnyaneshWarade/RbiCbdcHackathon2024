@@ -38,7 +38,7 @@ namespace BharatEpaisaApp.ViewModels
                 if (storedMobileNo == MobileNo && storedPin == Pin)
                 {
                     // get the cloud token
-                    string? publicKey = await SecureStorage.Default.GetAsync("ECC_PublicKey");
+                    string? publicKey = await SecureStorage.Default.GetAsync(Constants.PublicKeyStr);
                     if (!string.IsNullOrEmpty(publicKey))
                     {
                         CommonFunctions.WalletPublicKey = publicKey;
@@ -46,9 +46,9 @@ namespace BharatEpaisaApp.ViewModels
                         {
                             try
                             {
-                                var url = $"{Constants.ApiURL}/user/getUserCloudMsgToken?publicKey={publicKey}";
-                                // Send GET request
-                                HttpResponseMessage response = await client.GetAsync(url);
+                                var dataStr = "{" + $"\"publicKey\":\"{publicKey}\"" + "}";
+                                var keyContent = new StringContent(dataStr, Encoding.UTF8, "application/json");
+                                var response = await client.PostAsync($"{Constants.ApiURL}/user/getUserCloudMsgToken", keyContent);
 
                                 // Read and output the response content
                                 AnonymousWallet? awObj = null;

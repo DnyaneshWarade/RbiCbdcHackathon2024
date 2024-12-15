@@ -7,14 +7,15 @@
                x:DataType="viewmodel:SendMoneyViewModel"
              xmlns:converter="clr-namespace:BharatEpaisaApp.Helper.ValueConverter"
                xmlns:modal="clr-namespace:BharatEpaisaApp.Database.Models"
-             Title="Send Money">
+             Title="Send Money"
+             xmlns:local="clr-namespace:BharatEpaisaApp.Pages.Views">
     <ContentPage.Resources>
         <ResourceDictionary>
             <converter:StepperMaxValueToBoolConverter x:Key="StepperMaxValueToBoolConverter" />
             <converter:NoteAvailableValueConverter x:Key="NoteAvailableValueConverter" />
         </ResourceDictionary>
     </ContentPage.Resources>
-    <Grid Padding="20" WidthRequest="350" BackgroundColor="White">
+    <Grid Padding="20" WidthRequest="350">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -125,5 +126,7 @@
                 HorizontalOptions="Center"
                 FontSize="18"
                 Command="{Binding SendMoneyCommand}" Grid.Row="6"/>
+        <local:LoadingView x:Name="loadingView" IsVisible="{Binding IsLoading}" 
+   HorizontalOptions="FillAndExpand" VerticalOptions="FillAndExpand"/>
     </Grid>
 </ContentPage>

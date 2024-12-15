@@ -7,6 +7,8 @@ using System.Collections.ObjectModel;
 using BharatEpaisaApp.Helper;
 using BharatEpaisaApp.Pages;
 using System.Text;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace BharatEpaisaApp.ViewModels
 {
@@ -225,31 +227,131 @@ namespace BharatEpaisaApp.ViewModels
                 var trxData = System.Text.Json.JsonSerializer.Deserialize<ServerTransaction>(data);
                 if (trxData != null)
                 {
-                    using (var client = new HttpClient())
+                    var anonymousTrxStatus = false;
+                    var trxContent = new StringContent(data, Encoding.UTF8, "application/json");
+                    var transactionObj = trxData.Trx;
+                    if (trxData.IsAnonymous)
                     {
-                        var trxContent = new StringContent(data, Encoding.UTF8, "application/json");
-                        var awRes = await client.PostAsync($"{Constants.ApiURL}/transaction/processTx", trxContent);
-                        if (awRes.IsSuccessStatusCode)
+                        // decrypt the transaction
+                        if (trxData.TrxEncryptedSate == null || trxData.TrxEncryptedSate.Length <=0 ||
+                            trxData.TrxBlind == null || trxData.TrxBlind.Length <= 0)
                         {
-                            trxData.Trx.AmtColor = "#0B6623";
-                            await UpdateTransaction(trxData.Trx);
-
-                            if (trxData.Trx.IsAnonymous)
+                            // set transactin as failed
+                            return;
+                        }
+                        string? privateKey = await SecureStorage.Default.GetAsync(Constants.PrivateKeyStr);
+                        var trxStr = CryptoOperations.DecryptWithPrivateKey(privateKey, trxData.TrxEncryptedSate, trxData.TrxBlind, trxData.TrxIV);
+                        var trx = System.Text.Json.JsonSerializer.Deserialize<Transaction>(trxStr);
+                        if (trx == null)
+                        {
+                            return;
+                        }
+                        transactionObj = trx;
+                        // generate the receiver proof
+                        var input = new
+                        {
+                            receiver_balance = anonymousBalance,
+                            transaction_amount = trx.Amount,
+                            balance_max = Constants.MaxAnonymousWalletBal
+                        };
+                        var payload = new
+                        {
+                            name = "receiver",
+                            input
+                        };
+                        using (var client = new HttpClient())
+                        {
+                            string payloadString = System.Text.Json.JsonSerializer.Serialize(payload);
+                            var zkpContent = new StringContent(payloadString, Encoding.UTF8, "application/json");
+                            var awRes = await client.PostAsync($"{Constants.ApiURL}/transaction/generateProof", zkpContent);
+                            if (!awRes.IsSuccessStatusCode)
                             {
-                                anonymousBalance += trxData.Trx.Amount;
-                                await SecureStorage.SetAsync(Constants.AnonymousBalStr, anonymousBalance.ToString());
+                                return;
                             }
-                            else
-                            {
-                                normalBalance += trxData.Trx.Amount;
-                                await SecureStorage.SetAsync(Constants.NormalBalStr, normalBalance.ToString());
-                            }
-                            UpdateBalance();
 
-                            await client.PostAsync($"{Constants.ApiURL}/transaction/receiverToSender", trxContent);
+                            var zkpRes = await awRes.Content.ReadAsStringAsync();
+                            trxData.ReceiverZkp = zkpRes;
+
+                            var receiverNewAccountState = new
+                            {
+                                reqId = trxData.TrxId,
+                                newBal = anonymousBalance + trx.Amount,
+                                denominations = trx.Denominations,
+                                oldBal = anonymousBalance,
+                                trxAmount = trx.Amount,
+                                desc = "Received Money",
+                            };
+                            var receiverActStateStr = System.Text.Json.JsonSerializer.Serialize(receiverNewAccountState);
+                            var (receiverEncryptedSate, receiverBlind, receiverIV) = CryptoOperations.EncryptWithPublicKey(CommonFunctions.WalletPublicKey, receiverActStateStr);
+                            trxData.ReceiverAccountState = receiverEncryptedSate;
+                            trxData.ReceiverBlind = receiverBlind;
+                            trxData.ReceiverIV = receiverIV;
+
+                            var completeTrxStr = JsonConvert.SerializeObject(trxData);
+                            var completeTrxContent = new StringContent(completeTrxStr, Encoding.UTF8, "application/json");
+                            var trxRes = await client.PostAsync($"{Constants.ApiURL}/transaction/processTx", completeTrxContent);
+                            anonymousTrxStatus = trxRes.IsSuccessStatusCode;
                         }
                     }
 
+                    if (!trxData.IsAnonymous || anonymousTrxStatus)
+                    {
+                        transactionObj.AmtColor = "#0B6623";
+                        transactionObj.Desc = "Received";
+                        transactionObj.Status = "Complete";
+                        await _databaseContext.AddItemAsync<Transaction>(transactionObj);
+                        
+                        if (transactionObj.IsAnonymous)
+                        {
+                            anonymousBalance += transactionObj.Amount;
+                            await SecureStorage.SetAsync(Constants.AnonymousBalStr, anonymousBalance.ToString());
+                        }
+                        else
+                        {
+                            normalBalance += transactionObj.Amount;
+                            await SecureStorage.SetAsync(Constants.NormalBalStr, normalBalance.ToString());
+                        }
+
+                        await LoadTransactionsAsync();
+                        UpdateBalance();
+
+                        var moneyReceivedList = JObject.Parse(transactionObj.Denominations);
+                        var denominationStr = transactionObj.IsAnonymous ? Constants.AnonymousDenominationsStr : Constants.NormalDenominationsStr;
+                        var moneyAvailableJson = await SecureStorage.Default.GetAsync(denominationStr);
+                        Collection<Denomination> moneyAvailableCollection;
+                        if (!string.IsNullOrWhiteSpace(moneyAvailableJson))
+                        {
+                            moneyAvailableCollection = JsonConvert.DeserializeObject<Collection<Denomination>>(moneyAvailableJson);
+                            foreach (var item in moneyAvailableCollection)
+                            {
+                                var note = (int)moneyReceivedList[item.Name];
+                                if (note != -1)
+                                {
+                                    item.MaxLimit += note;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            moneyAvailableCollection = new Collection<Denomination>();
+                            foreach (var item in CommonFunctions.GetDenominations())
+                            {
+                                var note = (int)moneyReceivedList[item.Name];
+                                if (note != -1)
+                                {
+                                    item.MaxLimit += note;
+                                }
+
+                                moneyAvailableCollection.Add(item);
+                            }
+                        }
+                        await SecureStorage.Default.SetAsync(denominationStr, JsonConvert.SerializeObject(moneyAvailableCollection));
+
+                        using (var client = new HttpClient())
+                        {
+                            await client.PostAsync($"{Constants.ApiURL}/transaction/receiverToSender", trxContent);
+                        }
+                    }
                 }
             }
             catch (Exception ex)
@@ -260,8 +362,13 @@ namespace BharatEpaisaApp.ViewModels
 
         private async Task UpdateTrxStatus(string data)
         {
+            //query based on request id
             try {
-                var trxData = System.Text.Json.JsonSerializer.Deserialize<Transaction>(data);
+                if (string.IsNullOrEmpty(data))
+                {
+                    return;
+                }
+                var trxData = await _databaseContext.GetItemByKeyAsync<Transaction>(data);
                 if (trxData == null || trxData.ReqId == null || trxData.Amount == 0)
                 {
                     return;

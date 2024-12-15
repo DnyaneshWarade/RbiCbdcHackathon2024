@@ -5,8 +5,9 @@
                xmlns:toolkit="clr-namespace:CommunityToolkit.Maui.Views;assembly=CommunityToolkit.Maui"
                xmlns:viewmodel="clr-namespace:BharatEpaisaApp.ViewModels"
                x:DataType="viewmodel:LoadMoneyViewModel"
-               xmlns:modal="clr-namespace:BharatEpaisaApp.Database.Models">
-    <Grid Padding="20" WidthRequest="350" BackgroundColor="White">
+               xmlns:modal="clr-namespace:BharatEpaisaApp.Database.Models"
+               xmlns:local="clr-namespace:BharatEpaisaApp.Pages.Views">
+    <Grid Padding="20" WidthRequest="350">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -16,7 +17,7 @@
         </Grid.RowDefinitions>
         <Label Text="Load Money"
                FontSize="20"
-               HorizontalOptions="Center" />
+               HorizontalOptions="Center" TextColor="Black"/>
         <Entry Placeholder="Choose notes"
                FontSize="18"
                Keyboard="Numeric"
@@ -33,7 +34,7 @@
                 <DataTemplate x:DataType="{x:Type modal:Denomination}">
                     <StackLayout HorizontalOptions="Center">
                             <Label Text="{Binding Source={x:Reference _stepper}, Path=Value, StringFormat='{0:F0}'}"
-                                   HorizontalOptions="Center" FontSize="24"/>
+                                   HorizontalOptions="Center" FontSize="24" TextColor="Black"/>
                             <Stepper x:Name="_stepper"
                                      Increment="1"
                                      Value="{Binding Quantity}"
@@ -50,5 +51,7 @@
                 HorizontalOptions="Center"
                 FontSize="18"
                 Command="{Binding LoadMoneyCommand}" Grid.Row="4"/>
+        <local:LoadingView x:Name="loadingView" IsVisible="{Binding IsLoading}" 
+           HorizontalOptions="FillAndExpand" VerticalOptions="FillAndExpand"/>
     </Grid>
 </toolkit:Popup>

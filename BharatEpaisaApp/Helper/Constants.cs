@@ -12,6 +12,8 @@
         static public readonly string AnonymousDenominationsStr = "AnonymousDenominations";
         static public readonly string NormalDenominationsStr = "NormalDenominations";
         static public readonly string IsAnonymousMode = "IsAnonymousMode";
+        static public readonly string PublicKeyStr = "ECC_PublicKey";
+        static public readonly string PrivateKeyStr = "ECC_PrivateKey";
         static public readonly double MaxAnonymousWalletBal = 2000;
     }
 }

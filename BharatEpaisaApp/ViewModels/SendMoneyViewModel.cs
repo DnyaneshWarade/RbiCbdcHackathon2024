@@ -40,6 +40,9 @@ namespace BharatEpaisaApp.ViewModels
         [ObservableProperty]
         private Color icon3BackgroundColor;
 
+        [ObservableProperty]
+        bool isLoading = false;
+
         public event EventHandler ClosePopup;
 
         private Collection<Denomination> _userAvailableDenominations;
@@ -72,12 +75,12 @@ namespace BharatEpaisaApp.ViewModels
                 Error = "Enter valid pin";
                 return;
             }
-            if(Amount < 0)
+            if (Amount < 0)
             {
                 Error = "Enter valid amount";
                 return;
             }
-
+            IsLoading = true;
             var denominationJson = "{";
             foreach (var item in Denominations)
             {
@@ -89,41 +92,112 @@ namespace BharatEpaisaApp.ViewModels
                     note.Quantity = 0;
                 }
             }
-            var reqId = CommonFunctions.GetEpochTime();
+            denominationJson += "}";
+            var reqId = CommonFunctions.GetEpochTime().ToString();
             var isAnonymousMode = Preferences.Get(Constants.IsAnonymousMode, false);
             var trx = new Transaction()
             {
-                ReqId = reqId.ToString(),
+                ReqId = reqId,
                 Desc = "Send money",
                 Amount = Amount,
                 IsAnonymous = isAnonymousMode,
-                Status = "In Progress"
+                Status = "In Progress",
+                Denominations = denominationJson
             };
-            var serverTrx = new ServerTransaction()
+            ServerTransaction serverTransaction = null;
+            if (!isAnonymousMode)
             {
-                Trx = trx,
-                Denominations = denominationJson,
-                ReceiverPublicKey = ReceiverMobileNo,
-                SenderCloudToken = CommonFunctions.CloudMessaginToken,
-                SenderZkp = "ToDo"
-            };
-
-            using (var client = new HttpClient())
-            {
-                var data = JsonConvert.SerializeObject(serverTrx);
-                var trxContent = new StringContent(data, Encoding.UTF8, "application/json");
-                var awRes = await client.PostAsync($"{Constants.ApiURL}/transaction/senderToReceiverTx", trxContent);
-                if (awRes.IsSuccessStatusCode)
+                serverTransaction = new ServerTransaction()
                 {
-                    await SecureStorage.Default.SetAsync(_denominationStr, JsonConvert.SerializeObject(_userAvailableDenominations));
-                    Transaction newItem = new Transaction { ReqId = reqId.ToString(), Amount = Amount, From = CommonFunctions.LoggedInMobileNo, To = ReceiverMobileNo, Status = "In Progress", Desc = "Send money" };
+                    TrxId = reqId,
+                    Trx = trx,
+                    ReceiverPublicKey = ReceiverMobileNo,
+                    SenderCloudToken = CommonFunctions.CloudMessaginToken,
+                    IsAnonymous = isAnonymousMode
+                };
+            }
+            else
+            {
+                var anBalStr = await SecureStorage.GetAsync(Constants.AnonymousBalStr);
+                double.TryParse(anBalStr, out var abal);
 
-                    var navigationParameter = new Dictionary<string, object>
+                // generate the zpk proof
+                var input = new
+                {
+                    sender_balance = abal,
+                    transaction_amount = Amount,
+                    balance_max = Constants.MaxAnonymousWalletBal,
+                    daily_transaction_count = 2,
+                    daily_transaction_limit = 50
+                };
+                var payload = new
+                {
+                    name = "sender",
+                    input
+                };
+                using (var client = new HttpClient())
+                {
+                    string payloadString = System.Text.Json.JsonSerializer.Serialize(payload);
+                    var zkpContent = new StringContent(payloadString, Encoding.UTF8, "application/json");
+                    var awRes = await client.PostAsync($"{Constants.ApiURL}/transaction/generateProof", zkpContent);
+                    if (!awRes.IsSuccessStatusCode)
+                    {
+                        Error = "Failed to generate the ZKP";
+                        IsLoading = false;
+                        return;
+                    }
+
+                    var zkpRes = await awRes.Content.ReadAsStringAsync();
+                    var senderNewAccountState = new
+                    {
+                        reqId,
+                        newBal = abal - Amount,
+                        denominations = denominationJson,
+                        oldBal = abal,
+                        trxAmount = Amount,
+                        desc = "Send Money",
+                    };
+                    var senderActStateStr = System.Text.Json.JsonSerializer.Serialize(senderNewAccountState);
+                    var (senderEncryptedSate, senderBlind, senderIV) = CryptoOperations.EncryptWithPublicKey(CommonFunctions.WalletPublicKey, senderActStateStr);
+                    var trxStr = System.Text.Json.JsonSerializer.Serialize(trx);
+                    var (trxEncryptedSate, trxBlind, trxIV) = CryptoOperations.EncryptWithPublicKey(ReceiverMobileNo, trxStr);
+
+                    serverTransaction = new ServerTransaction()
+                    {
+                        TrxId = reqId,
+                        ReceiverPublicKey = ReceiverMobileNo,
+                        SenderCloudToken = CommonFunctions.CloudMessaginToken,
+                        IsAnonymous = isAnonymousMode,
+                        SenderZkp = zkpRes,
+                        SenderAccountState = senderEncryptedSate,
+                        SenderBlind = senderBlind,
+                        SenderIV = senderIV,
+                        TrxEncryptedSate = trxEncryptedSate,
+                        TrxBlind = trxBlind,
+                        TrxIV = trxIV,
+                    };
+                }
+            }
+            if (serverTransaction != null)
+            {
+                using (var client = new HttpClient())
+                {
+                    var data = JsonConvert.SerializeObject(serverTransaction);
+                    var trxContent = new StringContent(data, Encoding.UTF8, "application/json");
+                    var awRes = await client.PostAsync($"{Constants.ApiURL}/transaction/senderToReceiverTx", trxContent);
+                    if (awRes.IsSuccessStatusCode)
+                    {
+                        await SecureStorage.Default.SetAsync(_denominationStr, JsonConvert.SerializeObject(_userAvailableDenominations));
+                        Transaction newItem = new Transaction { ReqId = reqId.ToString(), Amount = Amount, From = CommonFunctions.LoggedInMobileNo, To = ReceiverMobileNo, Status = "In Progress", Desc = "Send money" };
+
+                        var navigationParameter = new Dictionary<string, object>
                                             {
                                                 { "transaction", newItem }
                                             };
-                    await Shell.Current.GoToAsync("..", true, navigationParameter);
-                    ClosePopup?.Invoke(this, EventArgs.Empty);
+                        IsLoading = false;
+                        await Shell.Current.GoToAsync("..", true, navigationParameter);
+                        ClosePopup?.Invoke(this, EventArgs.Empty);
+                    }
                 }
             }
         }

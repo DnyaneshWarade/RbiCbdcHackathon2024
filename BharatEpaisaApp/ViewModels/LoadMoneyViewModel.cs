@@ -21,6 +21,9 @@ namespace BharatEpaisaApp.ViewModels
         [ObservableProperty]
         string error;
 
+        [ObservableProperty]
+        bool isLoading = false;
+        
         public event EventHandler ClosePopup;
 
         public LoadMoneyViewModel()
@@ -42,6 +45,7 @@ namespace BharatEpaisaApp.ViewModels
                     Error = "Enter valid amount";
                     return;
                 }
+                IsLoading = true;
                 var isAnonymousMode = Preferences.Get(Constants.IsAnonymousMode, false);
                 var isAMLoadMoneySuccessful = false;
                 var reqId = CommonFunctions.GetEpochTime();
@@ -100,10 +104,10 @@ namespace BharatEpaisaApp.ViewModels
                         if (!awRes.IsSuccessStatusCode)
                         {
                             Error = "Failed to generate the ZKP";
+                            IsLoading = false;
                             return;
                         }
 
-                        var token = Preferences.Get("DeviceToken", "");
                         var zkpRes = await awRes.Content.ReadAsStringAsync();
 
                         var newAccountState = new
@@ -116,14 +120,15 @@ namespace BharatEpaisaApp.ViewModels
                             desc = "Load Money",
                         };
                         var actStateStr = System.Text.Json.JsonSerializer.Serialize(newAccountState);
-                        var (encryptedSate, blind) = CryptoOperations.EncryptWithPublicKey(CommonFunctions.WalletPublicKey, actStateStr);
+                        var (encryptedSate, blind, iv) = CryptoOperations.EncryptWithPublicKey(CommonFunctions.WalletPublicKey, actStateStr);
                         var data = new
                         {
                             requestId = reqId,
-                            token,
+                            token = CommonFunctions.CloudMessaginToken,
                             zkp = zkpRes,
                             accountState = encryptedSate,
-                            blind
+                            blind,
+                            iv
                         };
                         var dataStr = System.Text.Json.JsonSerializer.Serialize(data);
                         var trxContent = new StringContent(dataStr, Encoding.UTF8, "application/json");
@@ -132,6 +137,7 @@ namespace BharatEpaisaApp.ViewModels
                         if (!isAMLoadMoneySuccessful)
                         {
                             Error = "Anonymous load money transaction failed";
+                            IsLoading = false;
                             return;
                         }
                     }
@@ -146,6 +152,7 @@ namespace BharatEpaisaApp.ViewModels
                                             {
                                                 { "transaction", newItem }
                                             };
+                    IsLoading = false;
                     await Shell.Current.GoToAsync("..", true, navigationParameter);
                     ClosePopup?.Invoke(this, EventArgs.Empty);
                 }

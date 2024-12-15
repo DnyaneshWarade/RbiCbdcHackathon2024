@@ -51,7 +51,7 @@ const getUserCloudMsgToken = async (req, res) => {
 	logger.info("userController getUserCloudMsgToken execution started");
 	try {
 		// validate the body
-		if (!req.query.publicKey) {
+		if (!req.body.publicKey) {
 			logger.error("Invalid request data");
 			response
 				.status(400)
@@ -59,7 +59,7 @@ const getUserCloudMsgToken = async (req, res) => {
 		}
 
 		// get the wallet  db
-		var wallet = await getAnonymousWallet(req.query.publicKey);
+		var wallet = await getAnonymousWallet(req.body.publicKey);
 		if (!wallet) {
 			return res.status(404).send("key not found");
 		} else {
