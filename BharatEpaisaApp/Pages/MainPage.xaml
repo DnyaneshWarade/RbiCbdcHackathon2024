@@ -6,6 +6,7 @@
              x:DataType="viewmodel:MainViewModel"
              xmlns:local="clr-namespace:BharatEpaisaApp.Pages.Views"
              xmlns:converter="clr-namespace:BharatEpaisaApp.Helper.ValueConverter"
+             xmlns:hwv="clr-namespace:HybridWebView;assembly=HybridWebView"
              xmlns:modal="clr-namespace:BharatEpaisaApp.Database.Models">
     <ContentPage.Resources>
         <ResourceDictionary>
@@ -32,7 +33,7 @@
                 <Label Text="{Binding Balance}" TextColor="White" FontSize="24"/>
                 <Label Text="Uncleared Balance" TextColor="White" FontSize="14" Padding="0,20,0,0"/>
                 <Label Text="{Binding UnclearedBal}" TextColor="White" FontSize="24"/>
-                <Label Text="Anonymous Wallet" TextColor="White" FontSize="18" Padding="0,15,0,0"/>
+                <Label Text="{Binding AnonymousWalletLable}" TextColor="White" FontSize="18" Padding="0,15,0,0"/>
                 <Switch VerticalOptions="CenterAndExpand" Margin="150,-35" IsToggled="{Binding IsAnonymousMode}"
                         Toggled="Switch_Toggled"/>
             </VerticalStackLayout>
@@ -45,6 +46,8 @@
                 <Button Text="Receive" Command="{Binding ReceiveMoneyCommand}"/>
                 <Button Text="Unload" Command="{Binding ClearDataCommand}"/>
             </HorizontalStackLayout>
+            <!--<HybridWebView x:Name="myHybridWebView"
+                           RawMessageReceived="HybridWebView_RawMessageReceived"/>-->
             <Label Text="Transaction history" Padding="10,0"
                    FontSize="18"
                    HorizontalOptions="Start" Grid.Row="2"/>

@@ -7,6 +7,7 @@ const User = Joi.object({
 	mobileNo: Joi.string().required(),
 	pin: Joi.string().required(),
 	deviceId: Joi.string().required(),
+	uniqueId: Joi.string().required(),
 	isAnonymousWCreated: Joi.bool().required(),
 	// aadharHash: Joi.string().required(),
 });

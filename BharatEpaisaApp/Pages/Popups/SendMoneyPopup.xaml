@@ -126,7 +126,6 @@
                 HorizontalOptions="Center"
                 FontSize="18"
                 Command="{Binding SendMoneyCommand}" Grid.Row="6"/>
-        <local:LoadingView x:Name="loadingView" IsVisible="{Binding IsLoading}" 
-   HorizontalOptions="FillAndExpand" VerticalOptions="FillAndExpand"/>
+        <local:LoadingView x:Name="loadingView" Grid.RowSpan="7" IsVisible="{Binding IsLoading}"/>
     </Grid>
 </ContentPage>

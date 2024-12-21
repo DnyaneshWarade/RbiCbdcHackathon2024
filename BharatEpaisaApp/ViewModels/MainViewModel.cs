@@ -31,6 +31,9 @@ namespace BharatEpaisaApp.ViewModels
         [ObservableProperty]
         bool isAnonymousMode;
 
+        [ObservableProperty]
+        string anonymousWalletLable = "KYC Wallet";
+
         private double normalBalance;
         private double normalUnclearedBal;
         private double anonymousBalance;
@@ -129,6 +132,7 @@ namespace BharatEpaisaApp.ViewModels
             {
                 Console.WriteLine(ex.Message);
             }
+            query.Clear();
         }
 
         private void UpdateBalance()
@@ -215,6 +219,7 @@ namespace BharatEpaisaApp.ViewModels
         public void SetTheme(bool isDarkTheme)
         {
             Application.Current.UserAppTheme = isDarkTheme ? AppTheme.Dark : AppTheme.Light;
+            AnonymousWalletLable = isDarkTheme ? "Anonymous Wallet" : "KYC Wallet";
             Preferences.Set(Constants.IsAnonymousMode, isDarkTheme);
             UpdateBalance();
             LoadTransactionsAsync();

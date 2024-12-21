@@ -60,7 +60,7 @@ namespace BharatEpaisaApp.ViewModels
             _userAvailableDenominations = JsonConvert.DeserializeObject<Collection<Denomination>>(moneyAvailableJson);
             foreach (var item in _userAvailableDenominations)
             {
-                item.MaxLimit = item.MaxLimit != 0 ? item.MaxLimit : 100;
+                //item.MaxLimit = item.MaxLimit != 0 ? item.MaxLimit : 100;
                 Denominations.Add(item);
             }
         }
@@ -80,6 +80,13 @@ namespace BharatEpaisaApp.ViewModels
                 Error = "Enter valid amount";
                 return;
             }
+            var isAnonymousMode = Preferences.Get(Constants.IsAnonymousMode, false);
+            if (isAnonymousMode && Amount >= 500)
+            {
+               await Application.Current.MainPage.DisplayAlert("Amount Exceed alert", "You cannot send more than 500 through anonymous wallet, please use KYC wallet for this transaction.", "ok");
+                await Shell.Current.GoToAsync("..", true); 
+            }
+
             IsLoading = true;
             var denominationJson = "{";
             foreach (var item in Denominations)
@@ -94,7 +101,7 @@ namespace BharatEpaisaApp.ViewModels
             }
             denominationJson += "}";
             var reqId = CommonFunctions.GetEpochTime().ToString();
-            var isAnonymousMode = Preferences.Get(Constants.IsAnonymousMode, false);
+            
             var trx = new Transaction()
             {
                 ReqId = reqId,
@@ -188,11 +195,12 @@ namespace BharatEpaisaApp.ViewModels
                     if (awRes.IsSuccessStatusCode)
                     {
                         await SecureStorage.Default.SetAsync(_denominationStr, JsonConvert.SerializeObject(_userAvailableDenominations));
-                        Transaction newItem = new Transaction { ReqId = reqId.ToString(), Amount = Amount, From = CommonFunctions.LoggedInMobileNo, To = ReceiverMobileNo, Status = "In Progress", Desc = "Send money" };
 
+                        trx.From = CommonFunctions.LoggedInMobileNo;
+                        trx.To = ReceiverMobileNo;
                         var navigationParameter = new Dictionary<string, object>
                                             {
-                                                { "transaction", newItem }
+                                                { "transaction", trx }
                                             };
                         IsLoading = false;
                         await Shell.Current.GoToAsync("..", true, navigationParameter);

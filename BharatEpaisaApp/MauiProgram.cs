@@ -1,5 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
-using BharatEpaisaApp.Pages;
+﻿using BharatEpaisaApp.Pages;
 using BharatEpaisaApp.Pages.Popups;
 using BharatEpaisaApp.ViewModels;
 using CommunityToolkit.Maui;

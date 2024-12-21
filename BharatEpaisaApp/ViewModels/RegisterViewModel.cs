@@ -47,26 +47,27 @@ namespace BharatEpaisaApp.ViewModels
                     // First store the anonymous wallet in details in server
                     var token = Preferences.Get("DeviceToken", "");
                     CommonFunctions.CloudMessaginToken = token;
-                    AnonymousWallet aWallet = new AnonymousWallet("", token, publicKey, true);
+                    var hash = CryptoOperations.ComputeSha256Hash(MobileNo);
+                    AnonymousWallet aWallet = new AnonymousWallet(hash, token, publicKey, true);
                     string awPayload = JsonConvert.SerializeObject(aWallet);
                     HttpClient client = new HttpClient();
                     var awContent = new StringContent(awPayload, Encoding.UTF8, "application/json");
                     var awRes = await client.PostAsync($"{Constants.ApiURL}/user/updateUserCloudMsgToken", awContent);
                     if (awRes.IsSuccessStatusCode)
                     {
-                        var hash = CryptoOperations.ComputeSha256Hash(mobileNo);
-                        User user = new User("", firstName, lastName, mobileNo, pin, hash, deviceModel, true);
-                        string payload = JsonConvert.SerializeObject(user);
-                        var content = new StringContent(payload, Encoding.UTF8, "application/json");
-                        var res = await client.PostAsync($"{Constants.ApiURL}/user/updateUser", content);
-                        if (res.IsSuccessStatusCode)
-                        {
+                        
+                        //User user = new User("", firstName, lastName, mobileNo, pin, hash, deviceModel, true);
+                        //string payload = JsonConvert.SerializeObject(user);
+                        //var content = new StringContent(payload, Encoding.UTF8, "application/json");
+                        //var res = await client.PostAsync($"{Constants.ApiURL}/user/updateUser", content);
+                        //if (res.IsSuccessStatusCode)
+                        //{
                             CommonFunctions.LoggedInMobileNo = MobileNo;
                             CommonFunctions.LoggedInMobilePin = Pin;
                             await SecureStorage.Default.SetAsync("mobileNo", MobileNo);
                             await SecureStorage.Default.SetAsync("pin", Pin);
                             await Shell.Current.GoToAsync($"//{nameof(MainPage)}");
-                        }
+                        //}
                     }
                     else
                         Error = "Didn't receive registration success within time, please try after sometime";
@@ -77,7 +78,11 @@ namespace BharatEpaisaApp.ViewModels
                 {
                     Error = "Enter valid parameters";
                 }
-            } catch (Exception ex) { Console.WriteLine(ex); IsLoading = false; }
+            } 
+            catch (Exception ex)
+            { 
+                Console.WriteLine(ex); IsLoading = false; 
+            }
         }
 
         private bool validateInput()

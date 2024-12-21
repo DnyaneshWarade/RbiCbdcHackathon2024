@@ -1,6 +1,6 @@
 const usersCollection = "Users";
 const awCollection = "AnonymousWallets";
-const txLogCollection = "transactionLog";
+const txLogCollection = "AnonymousTransactionLogs";
 
 module.exports = {
 	usersCollection,
