@@ -8,6 +8,7 @@
              xmlns:converter="clr-namespace:BharatEpaisaApp.Helper.ValueConverter"
                xmlns:modal="clr-namespace:BharatEpaisaApp.Database.Models"
              Title="Send Money"
+             xmlns:hwv="clr-namespace:HybridWebView;assembly=HybridWebView"
              xmlns:local="clr-namespace:BharatEpaisaApp.Pages.Views">
     <ContentPage.Resources>
         <ResourceDictionary>
@@ -17,6 +18,7 @@
     </ContentPage.Resources>
     <Grid Padding="20" WidthRequest="350">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -126,6 +128,8 @@
                 HorizontalOptions="Center"
                 FontSize="18"
                 Command="{Binding SendMoneyCommand}" Grid.Row="6"/>
-        <local:LoadingView x:Name="loadingView" Grid.RowSpan="7" IsVisible="{Binding IsLoading}"/>
+        <local:LoadingView x:Name="loadingView" Grid.RowSpan="8" IsVisible="{Binding IsLoading}"/>
+        <hwv:HybridWebView x:Name="myHybridWebView" HybridAssetRoot="wwwroot" 
+               RawMessageReceived="HybridWebView_RawMessageReceived" Grid.Row="7"/>
     </Grid>
 </ContentPage>

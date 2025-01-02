@@ -4,6 +4,7 @@ using BharatEpaisaApp.ViewModels;
 using CommunityToolkit.Maui;
 using BharatEpaisaApp.Database;
 using ZXing.Net.Maui.Controls;
+using Microsoft.Extensions.Logging;
 
 namespace BharatEpaisaApp
 {

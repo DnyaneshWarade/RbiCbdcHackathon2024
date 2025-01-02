@@ -6,6 +6,7 @@ using System.Collections.ObjectModel;
 using Newtonsoft.Json;
 using BharatEpaisaApp.Pages.Popups;
 using System.Text;
+using BharatEpaisaApp.Services;
 
 namespace BharatEpaisaApp.ViewModels
 {
@@ -44,9 +45,16 @@ namespace BharatEpaisaApp.ViewModels
         bool isLoading = false;
 
         public event EventHandler ClosePopup;
+        // Delegate to request an action sheet with dynamic options
+        public event Func<IList<string>, Task<string>> ShowPairedBluetoothDevices;
+        public event Func<string, Task> GetSendMoneyZkProof;
 
         private Collection<Denomination> _userAvailableDenominations;
         private string _denominationStr;
+        IBluetoothService _bluetoothService = CommonFunctions.GetBluetoothService();
+        private string _selectedBluetoothDevice;
+        public string SenderZkp { get; set; }
+
         public SendMoneyViewModel()
         {
             Init();
@@ -62,6 +70,29 @@ namespace BharatEpaisaApp.ViewModels
             {
                 //item.MaxLimit = item.MaxLimit != 0 ? item.MaxLimit : 100;
                 Denominations.Add(item);
+            }
+        }
+       
+
+        public async Task TriggerActionSheet(IList<string> options)
+        {
+            if (ShowPairedBluetoothDevices != null)
+            {
+                string result = await ShowPairedBluetoothDevices.Invoke(options);
+                if (!string.IsNullOrEmpty(result))
+                {
+                    _selectedBluetoothDevice = result;
+                    // Handle the selected option
+                    Console.WriteLine($"Selected option: {result}");
+                }
+            }
+        }
+
+        public void TriggerGenerateZkProof(string input)
+        {
+            if (!string.IsNullOrEmpty(input))
+            {
+                GetSendMoneyZkProof.Invoke(input);
             }
         }
 
@@ -81,7 +112,7 @@ namespace BharatEpaisaApp.ViewModels
                 return;
             }
             var isAnonymousMode = Preferences.Get(Constants.IsAnonymousMode, false);
-            if (isAnonymousMode && Amount >= 500)
+            if (isAnonymousMode && Amount > 500)
             {
                await Application.Current.MainPage.DisplayAlert("Amount Exceed alert", "You cannot send more than 500 through anonymous wallet, please use KYC wallet for this transaction.", "ok");
                 await Shell.Current.GoToAsync("..", true); 
@@ -142,19 +173,33 @@ namespace BharatEpaisaApp.ViewModels
                     name = "sender",
                     input
                 };
-                using (var client = new HttpClient())
+                string inputString = System.Text.Json.JsonSerializer.Serialize(input);
+                GetSendMoneyZkProof.Invoke(inputString);
+                var counter = 0;
+                do
                 {
-                    string payloadString = System.Text.Json.JsonSerializer.Serialize(payload);
-                    var zkpContent = new StringContent(payloadString, Encoding.UTF8, "application/json");
-                    var awRes = await client.PostAsync($"{Constants.ApiURL}/transaction/generateProof", zkpContent);
-                    if (!awRes.IsSuccessStatusCode)
-                    {
-                        Error = "Failed to generate the ZKP";
-                        IsLoading = false;
-                        return;
-                    }
+                    await Task.Delay(10000);
+                    ++counter;
+                }
+                while (string.IsNullOrEmpty(SenderZkp) && counter <= 6);
+                if (string.IsNullOrEmpty(SenderZkp))
+                {
+                    Error = "Unable to generate the Zkp for transaction";
+                    return;
+                }
+                //using (var client = new HttpClient())
+                //{
+                //    string payloadString = System.Text.Json.JsonSerializer.Serialize(payload);
+                //    var zkpContent = new StringContent(payloadString, Encoding.UTF8, "application/json");
+                //    var awRes = await client.PostAsync($"{Constants.ApiURL}/transaction/generateProof", zkpContent);
+                //    if (!awRes.IsSuccessStatusCode)
+                //    {
+                //        Error = "Failed to generate the ZKP";
+                //        IsLoading = false;
+                //        return;
+                //    }
 
-                    var zkpRes = await awRes.Content.ReadAsStringAsync();
+                //    var zkpRes = await awRes.Content.ReadAsStringAsync();
                     var senderNewAccountState = new
                     {
                         reqId,
@@ -175,7 +220,7 @@ namespace BharatEpaisaApp.ViewModels
                         ReceiverPublicKey = ReceiverMobileNo,
                         SenderCloudToken = CommonFunctions.CloudMessaginToken,
                         IsAnonymous = isAnonymousMode,
-                        SenderZkp = zkpRes,
+                        SenderZkp = SenderZkp,
                         SenderAccountState = senderEncryptedSate,
                         SenderBlind = senderBlind,
                         SenderIV = senderIV,
@@ -183,31 +228,53 @@ namespace BharatEpaisaApp.ViewModels
                         TrxBlind = trxBlind,
                         TrxIV = trxIV,
                     };
-                }
+                //}
             }
+
+            
             if (serverTransaction != null)
             {
-                using (var client = new HttpClient())
+                var data = JsonConvert.SerializeObject(serverTransaction);
+                switch (SelectedIcon)
                 {
-                    var data = JsonConvert.SerializeObject(serverTransaction);
-                    var trxContent = new StringContent(data, Encoding.UTF8, "application/json");
-                    var awRes = await client.PostAsync($"{Constants.ApiURL}/transaction/senderToReceiverTx", trxContent);
-                    if (awRes.IsSuccessStatusCode)
-                    {
-                        await SecureStorage.Default.SetAsync(_denominationStr, JsonConvert.SerializeObject(_userAvailableDenominations));
+                    case "NFC":
+                        break;
+                    case "Quick Share":
+                        if (!string.IsNullOrEmpty(_selectedBluetoothDevice))
+                        {
+                            await _bluetoothService.SendDataAsync(_selectedBluetoothDevice, data);
+                            await FinalizeSendMoney(trx);
+                        }
+                        break;
+                    case "Remote":
+                        using (var client = new HttpClient())
+                        {
+                            var trxContent = new StringContent(data, Encoding.UTF8, "application/json");
+                            var awRes = await client.PostAsync($"{Constants.ApiURL}/transaction/senderToReceiverTx", trxContent);
+                            if (awRes.IsSuccessStatusCode)
+                            {
+                                await FinalizeSendMoney(trx);
+                            }
+                        }
+                        break;
 
-                        trx.From = CommonFunctions.LoggedInMobileNo;
-                        trx.To = ReceiverMobileNo;
-                        var navigationParameter = new Dictionary<string, object>
+                }
+            }
+        }
+
+        private async Task FinalizeSendMoney(Transaction trx)
+        {
+            await SecureStorage.Default.SetAsync(_denominationStr, JsonConvert.SerializeObject(_userAvailableDenominations));
+
+            trx.From = CommonFunctions.LoggedInMobileNo;
+            trx.To = ReceiverMobileNo;
+            var navigationParameter = new Dictionary<string, object>
                                             {
                                                 { "transaction", trx }
                                             };
-                        IsLoading = false;
-                        await Shell.Current.GoToAsync("..", true, navigationParameter);
-                        ClosePopup?.Invoke(this, EventArgs.Empty);
-                    }
-                }
-            }
+            IsLoading = false;
+            await Shell.Current.GoToAsync("..", true, navigationParameter);
+            ClosePopup?.Invoke(this, EventArgs.Empty);
         }
 
         [RelayCommand]
@@ -216,16 +283,18 @@ namespace BharatEpaisaApp.ViewModels
             ResetBackgroundColors();
             Icon1BackgroundColor = primaryColorWithTransparency;
             SelectedIcon = "NFC";
-            CommonFunctions.StartNfcListening();
+            //CommonFunctions.StartNfcListening();
             CommonFunctions.SendNfcMessage("NFC test message");
         }
 
         [RelayCommand]
-        private void ShareTap()
+        private async void ShareTap()
         {
             ResetBackgroundColors();
             Icon2BackgroundColor = primaryColorWithTransparency;
             SelectedIcon = "Quick Share";
+            var devices = _bluetoothService.GetPairedDevicesAsync();
+            await TriggerActionSheet(devices);
         }
 
         [RelayCommand]

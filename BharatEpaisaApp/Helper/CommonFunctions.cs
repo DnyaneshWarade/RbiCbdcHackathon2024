@@ -224,5 +224,16 @@ namespace BharatEpaisaApp.Helper
                 new Denomination("TwoThousand", "twothousand.jpg", 2000),
             };
         }
+
+        public static IBluetoothService GetBluetoothService()
+        {
+#if ANDROID
+            return new Platforms.Android.BluetoothService();
+#elif WINDOWS
+            throw new NotImplementedException("Bluetooth functionality is not implemented on Windows.");
+#else
+            throw new PlatformNotSupportedException("Bluetooth functionality is not supported on this platform.");
+#endif
+        }
     }
 }

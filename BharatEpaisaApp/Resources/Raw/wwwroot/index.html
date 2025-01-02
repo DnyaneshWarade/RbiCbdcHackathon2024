@@ -4,8 +4,8 @@
 <head>
     <meta charset="utf-8" />
     <title></title>
-	<script src="scripts/HybridWebView.js"></script>
-	<!-- <script src="_hwv/HybridWebView.js"></script> -->
+	<!-- <script src="scripts/HybridWebView.js"></script> -->
+	<script src="_hwv/HybridWebView.js"></script>
     <script src="scripts/snarkjs.min.js"></script>
     <script>
 		async function calculateProof(proofType, input) {
@@ -14,21 +14,18 @@
 			}
 			
 			var inputJson = JSON.parse(input);
-			let circuitUrl = `https://raw.githubusercontent.com/swadhinbubaipaul/serve/main/${proofType}_circuit.wasm`;
-			let keyUrl = `https://raw.githubusercontent.com/swadhinbubaipaul/serve/main/${proofType}_circuit_0001.zkey`;
+			let circuitUrl = `https://0.0.0.1/${proofType}_circuit.wasm`;
+			let keyUrl = `https://0.0.0.1/${proofType}_circuit_0001.zkey`;
 			
-			let proof, publicSignals;
 			try {
 				const res = await snarkjs.groth16.fullProve(
 					inputJson,
 					circuitUrl,
 					keyUrl
 				);
-				alert(res);
-				return res;
+				HybridWebView.SendRawMessageToDotNet(JSON.stringify({proofType, ...res}));
 			} catch (error) {
-				//alert(error);
-				return error;
+				HybridWebView.SendRawMessageToDotNet(JSON.stringify(error));
 			}
 		}
     </script>
