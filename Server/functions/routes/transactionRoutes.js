@@ -1,5 +1,6 @@
 const express = require("express");
 const {
+	biometricFaceVerification,
 	loadMoney,
 	processSenderTransaction,
 	zkpSenderToReceiverTx,
@@ -11,6 +12,7 @@ const {
 
 const router = express.Router();
 
+router.post("/biometricFaceVerification", biometricFaceVerification);
 router.post("/loadMoney", loadMoney);
 router.post("/processTx", processTransaction);
 router.post("/senderToReceiverTx", processSenderTransaction);

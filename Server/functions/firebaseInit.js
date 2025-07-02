@@ -1,5 +1,5 @@
 const admin = require("firebase-admin");
-const serviceAccount = require("./rbicbdchackathon2024-firebase-adminsdk-fir03-74a49bebb5.json");
+const serviceAccount = require("./rbicbdchackathon2024-firebase-adminsdk-fir03-dda2ce6bdc.json");
 
 let firebaseApp;
 const initializeFirebaseApp = () => {

@@ -14,6 +14,47 @@ const { getAnonymousWallet } = require("../helpers/walletHelper");
 const { Console } = require("console");
 const { getVerificationKey } = require("../helpers/transactionHelper");
 
+const biometricFaceVerification = async (req, res) => {
+	try {
+		// validate the body
+		if (!req.body) {
+			logger.error("Invalid request data");
+			return res.status(400).send("Invalid data");
+		}
+
+		// Validate input
+		const { proof, publicSignals } = req.body;
+		if (!proof || !publicSignals) {
+			logger.error("Missing required fields");
+			return res.status(400).json({ error: "Missing required fields" });
+		}
+
+		const verificationKey = await getVerificationKey("biometric");
+
+		// Verify proof
+		const isProofValid = await snarkjs.groth16.verify(
+			verificationKey,
+			publicSignals,
+			proof
+		);
+
+		if (!isProofValid) {
+			logger.error("Invalid proof");
+			return res.status(400).json({ error: "Invalid proof" });
+		}
+
+		res.status(200).json({
+			message: "Biometric verification successful",
+		});
+	} catch (error) {
+		logger.error(error);
+		res.status(500).json({
+			message: "Biometric verification failed",
+			error: error.message,
+		});
+	}
+};
+
 const loadMoney = async (req, res) => {
 	try {
 		// Extract details from the request body
@@ -470,6 +511,7 @@ const getzkwasm = async (req, res) => {
 };
 
 module.exports = {
+	biometricFaceVerification,
 	loadMoney,
 	processSenderTransaction,
 	zkpSenderToReceiverTx,
